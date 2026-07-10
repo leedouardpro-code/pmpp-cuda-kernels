@@ -16,8 +16,6 @@ Every kernel here is written from scratch.
 | 5 | Memory architecture and data locality | — | ⬜ | — |
 | 6 | Performance considerations | — | ⬜ | — |
 
-*(Table updated as I progress. "Key takeaway" = the one thing I'd mention about this kernel in an interview.)*
-
 ## Repository structure
 
 ```
@@ -37,24 +35,36 @@ One folder per chapter. Each folder contains the kernel(s), and (from chapter 5 
 |---|---|
 | **Current** | Google Colab — NVIDIA T4 (Turing, SM 7.5), CUDA 12.x |
 | **Target** | Jetson Orin Nano (Ampere, SM 8.7) — planned |
-| **Editor** | VS Code + Nsight Visual Studio Code Edition, AI completions disabled |
+| **Editor** | VS Code + Nsight Visual Studio Code Edition |
 
 ## Build & run
 
+Each chapter folder ships a `Makefile` following the same conventions.
+
 ```bash
-# On any machine with nvcc (adapt -arch to your GPU, check with nvidia-smi)
-nvcc -arch=sm_75 ch02_vecadd/vecadd.cu -o vecadd
-./vecadd
+cd ch02_vecadd
+
+make            # build everything (demo + tests)
+make run        # build if needed, then run the demo
+make test       # build if needed, then run the tests
+make clean      # remove binaries and objects
+```
+
+The target GPU architecture defaults to `sm_75` (Colab T4) and can be
+overridden without editing any file:
+
+```bash
+make ARCH=sm_87 test    # Jetson Orin Nano
 ```
 
 On Colab:
 
 ```python
 !git clone https://github.com/<user>/pmpp-cuda-kernels.git
-%cd pmpp-cuda-kernels
-!nvcc -arch=sm_75 ch02_vecadd/vecadd.cu -o vecadd && ./vecadd
+%cd pmpp-cuda-kernels/ch02_vecadd
+!nvidia-smi --query-gpu=name,compute_cap --format=csv   # check GPU & arch
+!make test
 ```
-
 ## Conventions
 
 - `_h` / `_d` suffixes for host/device pointers (book convention)

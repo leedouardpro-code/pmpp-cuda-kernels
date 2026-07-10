@@ -1,9 +1,9 @@
 # ==== Config ====
 NVCC      := nvcc
-ARCH      ?= sm_75
-NVCCFLAGS := -arch=$(ARCH) -O2 -I../common
+ARCH      ?= sm_75 #sm_87 for Orin
+NVCCFLAGS := -arch=$(ARCH) -O2 -I../utils
 
-COMMON_HDRS := ../common/cuda_check.h vecadd.cuh
+COMMON_HDRS := ../utils/cuda_check.h vecadd.cuh
 
 # ==== Rules ====
 all: vecadd test_vecadd
