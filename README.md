@@ -20,9 +20,12 @@ Every kernel here is written from scratch.
 
 ```
 pmpp-cuda-kernels/
-├── common/
+├── utils/
 │   └── cuda_check.h      # CUDA_CHECK error-handling macro, shared by all kernels
 ├── ch02_vecadd/
+│   ├── test.cu
+│   ├── Makefile
+│   ├── vecadd.cuh
 │   └── vecadd.cu
 └── ...
 ```
