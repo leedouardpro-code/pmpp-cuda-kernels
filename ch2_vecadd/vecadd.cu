@@ -14,7 +14,8 @@ void vecAddKernel(float* A,float* B,float* C, int N){
 
 void vec_add(float* A_h, float* B_h, float* C_h, int N){
     int size = N*sizeof(float);
-    int gridsize = (N + size - 1)/size
+    int gridsize = (N + size - 1)/size;
+    int blocksize = 256;
 
     // Device global memory allocation
     float* A_d;
@@ -30,7 +31,7 @@ void vec_add(float* A_h, float* B_h, float* C_h, int N){
     CUDA_CHECK(cudaMemcpy(B_d, B_h, size, cudaMemcpyHostToDevice));
 
     // kernel execution
-    vecAddKernel<<<ceil(N/256.0), 256>>>(A_d, B_d, C_d, N);
+    vecAddKernel<<<gridsize, blocksize>>>(A_d, B_d, C_d, N);
 
     // Device to Host data transfert
     CUDA_CHECK(cudaMemcpy(C_h, C_d, size, cudaMemcpyDeviceToHost));
