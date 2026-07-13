@@ -2,6 +2,7 @@
 #define VECADD_CUH
 
 __global__ void vecAddKernel(float* A, float* B, float* C, int N);
-void vec_add(float* A_h, float* B_h, float* C_h, int N);
+void vec_add_gpu(float* A_h, float* B_h, float* C_h, int N);
+void vec_add_cpu(float* A_h, float* B_h, float* C_h, int N);
 
 #endif // VECADD_CUH
