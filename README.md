@@ -10,7 +10,7 @@ Every kernel here is written from scratch.
 
 | Chapter | Topic | Kernel(s) | Status | Key takeaway |
 |---|---|---|---|---|
-| 2 | Heterogeneous data parallel computing | `vecadd` | 🔄 in progress | — |
+| 2 | Heterogeneous data parallel computing | `vecadd` | completed | data transfert takes 98% of total execution time |
 | 3 | Multidimensional grids and data | — | ⬜ | — |
 | 4 | Compute architecture and scheduling | — | ⬜ | — |
 | 5 | Memory architecture and data locality | — | ⬜ | — |
@@ -23,10 +23,11 @@ pmpp-cuda-kernels/
 ├── utils/
 │   └── cuda_check.h      # CUDA_CHECK error-handling macro, shared by all kernels
 ├── ch02_vecadd/
-│   ├── test.cu
 │   ├── Makefile
 │   ├── vecadd.cuh
-│   └── vecadd.cu
+│   ├── vecadd.cu
+│   ├── test_vecadd.cu
+│   └── bench_vecadd.cu
 └── ...
 ```
 
@@ -47,9 +48,10 @@ Each chapter folder ships a `Makefile` following the same conventions.
 ```bash
 cd ch02_vecadd
 
-make            # build everything (demo + tests)
+make            # build everything (tests + bench)
 make run        # build if needed, then run the demo
 make test       # build if needed, then run the tests
+make bench      # build if needed, then run the performance testing
 make clean      # remove binaries and objects
 ```
 
