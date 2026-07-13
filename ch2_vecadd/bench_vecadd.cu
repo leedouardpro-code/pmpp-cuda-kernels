@@ -1,3 +1,4 @@
+#include <cuda_runtime.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "cuda_check.h"
@@ -32,7 +33,7 @@ static int performance() {
     CUDA_CHECK(cudaEventCreate(&start));
     CUDA_CHECK(cudaEventCreate(&stop));
     float ms_h2d, ms_d2h, ms_k;
-
+    
     // Warmup
     for(int i = 0; i < warmup; i++){
         vecAddKernel<<<gridsize, blocksize>>>(A_d, B_d, C_d, N);
