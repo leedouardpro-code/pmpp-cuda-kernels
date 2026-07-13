@@ -1,26 +1,26 @@
-#include <stdio.h>
-#include <cuda_runtime.h>
 #include <cuda_check.h>
+#include <cuda_runtime.h>
+#include <stdio.h>
+
 #include "vecadd.cuh"
 
-__global__
-void vecAddKernel(float* A, float* B, float* C, int N){
+__global__ void vecAddKernel(float* A, float* B, float* C, int N) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < N){
+    if (i < N) {
         C[i] = A[i] + B[i];
     }
 }
 
-void vec_add_gpu(float* A_h, float* B_h, float* C_h, int N){
+void vec_add_gpu(float* A_h, float* B_h, float* C_h, int N) {
     const size_t size = N * sizeof(float);
     const int blocksize = 256;
-    const int gridsize = (N + blocksize - 1)/blocksize;
+    const int gridsize = (N + blocksize - 1) / blocksize;
 
     // Device global memory allocation
-    float* A_d, *B_d, *C_d;
-    CUDA_CHECK(cudaMalloc((void **)&A_d, size));
-    CUDA_CHECK(cudaMalloc((void **)&B_d, size));
-    CUDA_CHECK(cudaMalloc((void **)&C_d, size));
+    float *A_d, *B_d, *C_d;
+    CUDA_CHECK(cudaMalloc((void**)&A_d, size));
+    CUDA_CHECK(cudaMalloc((void**)&B_d, size));
+    CUDA_CHECK(cudaMalloc((void**)&C_d, size));
 
     // Host to Device data transfert
     CUDA_CHECK(cudaMemcpy(A_d, A_h, size, cudaMemcpyHostToDevice));
@@ -41,8 +41,8 @@ void vec_add_gpu(float* A_h, float* B_h, float* C_h, int N){
     CUDA_CHECK(cudaFree(C_d));
 }
 
-void vec_add_cpu(float* A_h, float* B_h, float* C_h, int N){
-    for (int i = 0; i < N; i++){
+void vec_add_cpu(float* A_h, float* B_h, float* C_h, int N) {
+    for (int i = 0; i < N; i++) {
         C_h[i] = A_h[i] + B_h[i];
     }
 }
