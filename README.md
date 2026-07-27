@@ -8,13 +8,13 @@ Every kernel here is written from scratch.
 
 ## Progress
 
-| Chapter | Topic | Kernel(s) | Status | Key takeaway |
+| Chapter | Topic | Kernel(s) | Status |
 |---|---|---|---|---|
-| 2 | Heterogeneous data parallel computing | `vecadd` | completed | data transfert takes 98% of total execution time |
-| 3 | Multidimensional grids and data | — | ⬜ | — |
-| 4 | Compute architecture and scheduling | — | ⬜ | — |
-| 5 | Memory architecture and data locality | — | ⬜ | — |
-| 6 | Performance considerations | — | ⬜ | — |
+| 2 | Heterogeneous data parallel computing | `vecadd` | -[x] |
+| 3 | Multidimensional grids and data | 'matmul', 'color2gray' | -[x] |
+| 4 | Compute architecture and scheduling | — | -[x] |
+| 5 | Memory architecture and data locality | — | in progress |
+| 6 | Performance considerations | — | ⬜ |
 
 ## Repository structure
 
