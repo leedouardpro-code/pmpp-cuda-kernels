@@ -10,9 +10,9 @@ Every kernel here is written from scratch.
 
 | Chapter | Topic | Kernel(s) | Status |
 |---|---|---|---|
-| 2 | Heterogeneous data parallel computing | `vecadd` | - [x] |
-| 3 | Multidimensional grids and data | 'matmul', 'color2gray' | - [x] |
-| 4 | Compute architecture and scheduling | — | - [x] |
+| 2 | Heterogeneous data parallel computing | `vecadd` | ✅ |
+| 3 | Multidimensional grids and data | 'matmul', 'color2gray' | ✅ |
+| 4 | Compute architecture and scheduling | — | ✅ |
 | 5 | Memory architecture and data locality | — | in progress |
 | 6 | Performance considerations | — | ⬜ |
 
