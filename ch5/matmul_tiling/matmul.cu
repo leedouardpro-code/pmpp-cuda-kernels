@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "matmul.cuh"
+#define TILE_WIDTH 32
 
 __global__ void Matmul_tiling(const float* A, const float* B, float* C, int width, int height) {
     __shared__ float M[TILE_WIDTH][TILE_WIDTH];

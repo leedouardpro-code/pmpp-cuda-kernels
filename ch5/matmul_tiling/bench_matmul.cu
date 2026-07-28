@@ -74,7 +74,7 @@ static int performance() {
     printf("Kernel    : %8.3f ms\n", ms_k);
     printf("D2H (C)   : %8.3f ms\n", ms_d2h);
     printf("Transfers : %5.1f %% of total\n", 100.0f * (ms_h2d + ms_d2h) / total);
-    printf("FLOPS     : %8.3f\n", ((2*N-1)*N*N)/ms_k);
+    printf("Throughput: %8.3f\n", ((2*N-1)*N*N)*1e-9/ms_k);
 
     CUDA_CHECK(cudaEventDestroy(start));
     CUDA_CHECK(cudaEventDestroy(stop));
