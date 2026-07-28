@@ -53,7 +53,7 @@ static int performance() {
 
     // Kernel execution
     CUDA_CHECK(cudaEventRecord(start));
-    Matmul<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, height);
+    Matmul_tiling<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, height);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaEventRecord(stop));
     CUDA_CHECK(cudaEventSynchronize(stop));
