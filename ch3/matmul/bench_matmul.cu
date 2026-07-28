@@ -67,12 +67,14 @@ static int performance() {
     CUDA_CHECK(cudaEventElapsedTime(&ms_d2h, start, stop));
 
     float total = ms_h2d + ms_k + ms_d2h;
+    int N = width;
     printf("\n===== Performance =====\n");
     printf("width = %d, height = %d,(%zu bytes)\n", width, height, (size * 3));
     printf("H2D (A+B) : %8.3f ms\n", ms_h2d);
     printf("Kernel    : %8.3f ms\n", ms_k);
     printf("D2H (C)   : %8.3f ms\n", ms_d2h);
     printf("Transfers : %5.1f %% of total\n", 100.0f * (ms_h2d + ms_d2h) / total);
+    printf("FLOPS     : %8.3f\n", ((2*N-1)*N*N)/ms_k);
 
     CUDA_CHECK(cudaEventDestroy(start));
     CUDA_CHECK(cudaEventDestroy(stop));

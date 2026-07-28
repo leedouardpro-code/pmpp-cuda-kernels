@@ -22,7 +22,7 @@ Every kernel here is written from scratch.
 pmpp-cuda-kernels/
 ├── utils/
 │   └── cuda_check.h      # CUDA_CHECK error-handling macro, shared by all kernels
-├── ch02_vecadd/
+├── ch2/
 │   ├── Makefile
 │   ├── vecadd.cuh
 │   ├── vecadd.cu
@@ -46,7 +46,7 @@ One folder per chapter. Each folder contains the kernel(s), and (from chapter 5 
 Each chapter folder ships a `Makefile` following the same conventions.
 
 ```bash
-cd ch02_vecadd
+cd ch2
 
 make            # build everything (tests + bench)
 make run        # build if needed, then run the demo
@@ -66,7 +66,7 @@ On Colab:
 
 ```python
 !git clone https://github.com/<user>/pmpp-cuda-kernels.git
-%cd pmpp-cuda-kernels/ch02_vecadd
+%cd pmpp-cuda-kernels/ch2
 !nvidia-smi --query-gpu=name,compute_cap --format=csv   # check GPU & arch
 !make test
 ```
