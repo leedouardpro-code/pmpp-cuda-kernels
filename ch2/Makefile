@@ -1,6 +1,6 @@
 # ==== Config ====
 NVCC := nvcc
-ARCH ?= sm_120
+ARCH ?= sm_75
 NVCCFLAGS := -arch=$(ARCH) -O2 -I../utils
 
 COMMON_HDRS := ../utils/cuda_check.h vecadd.cuh
