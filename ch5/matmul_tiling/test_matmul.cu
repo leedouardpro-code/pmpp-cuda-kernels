@@ -30,21 +30,21 @@ static int check(int width, int height, const float tolerence, int visual = 0) {
 
     // Verification
     if (visual){
-        printf("\n===== GPU Visual =====\n")
+        printf("\n===== GPU Visual =====\n");
         for (int row = 0; row < height; row++) {
-            printf("|")
+            printf("|");
             for (int col = 0; col < width; col++) {
-                printf("%f|",C_h_gpu[row*width+col])
+                printf("%f|",C_h_gpu[row*width+col]);
             }
-            printf("\n")
+            printf("\n");
         }
-        printf("\n===== CPU Visual =====\n")
+        printf("\n===== CPU Visual =====\n");
         for (int row = 0; row < height; row++) {
-            printf("|")
+            printf("|");
             for (int col = 0; col < width; col++) {
-                printf("%f|",C_h_cpu[row*width+col])
+                printf("%f|",C_h_cpu[row*width+col]);
             }
-            printf("\n")
+            printf("\n");
         }
     }
 
