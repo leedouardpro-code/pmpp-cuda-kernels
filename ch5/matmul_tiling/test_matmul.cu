@@ -70,8 +70,6 @@ static int check(int width, int height, const float tolerence, int visual = 0) {
     return 0;
 }
 
-static int visual_check
-
 int main(void) {
     int width[] = {1, 33, 2 << 7, 2 << 9};
     int height[] = {1, 33, 2 << 7, 2 << 9};
