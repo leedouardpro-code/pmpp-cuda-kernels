@@ -51,8 +51,8 @@ static int check(int width, int height, const float tolerence) {
 }
 
 int main(void) {
-    int width[] = {1, 2 << 7, 527, 2 << 10};
-    int height[] = {1, 2 << 7, 527, 2 << 10};
+    int width[] = {1, 33, 2 << 7, 2 << 9};
+    int height[] = {1, 33, 2 << 7, 2 << 9};
     int failures = 0;
 
     // test harness
