@@ -20,17 +20,20 @@ __global__ void Matmul_tiling(const float* A, const float* B, float* C, int widt
     for (int ph = 0; ph < (width + TILE_WIDTH -1)/TILE_WIDTH ; ph ++){
 
         // Data transfert global memory to shared memory
-        if (row < height && TILE_WIDTH * ph + tx < width) M[ty][tx] = A[row * width + TILE_WIDTH * ph + tx];
-        if (ph * TILE_WIDTH + ty < height && col < width) N[ty][tx] = B[col + (ph * TILE_WIDTH + ty) * width];
+        if (row < height && TILE_WIDTH * ph + tx < width) 
+            M[ty][tx] = A[row * width + TILE_WIDTH * ph + tx];
+        else M[ty][tx] = 0.0f;
+
+        if (ph * TILE_WIDTH + ty < height && col < width)
+            N[ty][tx] = B[col + (ph * TILE_WIDTH + ty) * width];
+        else n[ty][tx] = 0.0f;
         
         // synchronizing read after write
         __syncthreads();
 
         // FLOPs sur les tuiles chargées en mémoires
-        if (row < height && col < width){
-            for(int k = 0; k < TILE_WIDTH; k++){
-                Pval += M[ty][k] * N[k][tx];
-            }
+        for(int k = 0; k < TILE_WIDTH; k++){
+            Pval += M[ty][k] * N[k][tx];
         }
 
         // synchronizing write after read
