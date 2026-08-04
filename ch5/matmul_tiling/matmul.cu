@@ -26,7 +26,7 @@ __global__ void Matmul_tiling(const float* A, const float* B, float* C, int widt
 
         if (ph * TILE_WIDTH + ty < height && col < width)
             N[ty][tx] = B[col + (ph * TILE_WIDTH + ty) * width];
-        else n[ty][tx] = 0.0f;
+        else N[ty][tx] = 0.0f;
         
         // synchronizing read after write
         __syncthreads();
