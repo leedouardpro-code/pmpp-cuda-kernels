@@ -39,7 +39,7 @@ __global__ void Matmul_tiling(const float* A, const float* B, float* C, int widt
         // synchronizing write after read
         __syncthreads();
     }
-    C[row * width + col] = Pval;
+    if (row < height && col < width) C[row * width + col] = Pval;
 }
 
 
