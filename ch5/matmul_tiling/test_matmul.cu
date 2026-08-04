@@ -85,6 +85,6 @@ int main(void) {
     // visual test
     int w = 33;
     int h = 33;
-    check(width[i], height[i], 1e-4, 1);
+    check(w, h, 1e-4, 1);
     return failures ? EXIT_FAILURE : EXIT_SUCCESS;
 }
