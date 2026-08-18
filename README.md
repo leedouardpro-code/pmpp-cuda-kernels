@@ -13,7 +13,7 @@ Every kernel here is written from scratch.
 | 2 | Heterogeneous data parallel computing | `vecadd` | ✅ |
 | 3 | Multidimensional grids and data | `matmul`, `color2gray` | ✅ |
 | 4 | Compute architecture and scheduling | — | ✅ |
-| 5 | Memory architecture and data locality | — | in progress |
+| 5 | Memory architecture and data locality | `matmul_tiling` | ✅ |
 | 6 | Performance considerations | — | ⬜ |
 
 ## Repository structure
@@ -49,7 +49,6 @@ Each chapter folder ships a `Makefile` following the same conventions.
 cd ch2
 
 make            # build everything (tests + bench)
-make run        # build if needed, then run the demo
 make test       # build if needed, then run the tests
 make bench      # build if needed, then run the performance testing
 make clean      # remove binaries and objects
