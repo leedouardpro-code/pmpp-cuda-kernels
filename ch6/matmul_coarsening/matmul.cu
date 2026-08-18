@@ -4,20 +4,24 @@
 
 #include "matmul.cuh"
 #define TILE_WIDTH 32
+#define COARSE_FACTOR 2
 
-__global__ void Matmul_tiling(const float* A, const float* B, float* C, int width, int height) {
+// natural coalescing + tiling + coarsening
+__global__ void Matmul_coarsening(const float* A, const float* B, float* C, int width, int height) {
     __shared__ float M[TILE_WIDTH][TILE_WIDTH];
     __shared__ float N[TILE_WIDTH][TILE_WIDTH];
+    float Pval[COARSE_FACTOR];
 
     int bx = blockIdx.x;
     int by = blockIdx.y;
     int tx = threadIdx.x;
     int ty = threadIdx.y;
+    int row = by * TILE_WIDTH + ty;
+    int colStart = bx * TILE_WIDTH * COARSE_FACTOR + tx;
 
-    int row = by * blockDim.y + ty;
-    int col = bx * blockDim.x + tx;
-
-    float Pval = 0;
+    for (int c = 0; c < COARSE_FACTOR; c++) {
+        Pval[c] = 0.0f;
+    }
 
     for (int ph = 0; ph < (width + TILE_WIDTH - 1) / TILE_WIDTH; ph++) {
         // Data transfert global memory to shared memory
@@ -26,30 +30,36 @@ __global__ void Matmul_tiling(const float* A, const float* B, float* C, int widt
         else
             M[ty][tx] = 0.0f;
 
-        if (ph * TILE_WIDTH + ty < height && col < width)
-            N[ty][tx] = B[col + (ph * TILE_WIDTH + ty) * width];
-        else
-            N[ty][tx] = 0.0f;
+        for (int c = 0; c < COARSE_FACTOR; c++) {
+            int col = colStart + c * TILE_WIDTH;
+            if (ph * TILE_WIDTH + ty < height && col < width)
+                N[ty][tx] = B[col + (ph * TILE_WIDTH + ty) * width];
+            else
+                N[ty][tx] = 0.0f;
 
-        // synchronizing read after write
-        __syncthreads();
+            // synchronizing read after write
+            __syncthreads();
 
-        // FLOPs sur les tuiles chargées en mémoires
-        for (int k = 0; k < TILE_WIDTH; k++) {
-            Pval += M[ty][k] * N[k][tx];
+            // FLOPs sur les tuiles chargées en mémoires
+            for (int k = 0; k < TILE_WIDTH; k++) {
+                Pval[c] += M[ty][k] * N[k][tx];
+            }
+            // synchronizing write after read
+            __syncthreads();
         }
-
-        // synchronizing write after read
-        __syncthreads();
     }
-    if (row < height && col < width) C[row * width + col] = Pval;
+    for (int c = 0; c < COARSE_FACTOR; c++) {
+        int col = colStart + c * TILE_WIDTH;
+        if (row < height && col < width) C[row * width + col] = Pval[c];
+    }
 }
 
 void matmul_gpu(float* A_h, float* B_h, float* C_h, int width, int height) {
     const size_t size = (size_t)width * height * sizeof(float);
     const dim3 blocksize(32, 32);
-    const dim3 gridsize((width + blocksize.x - 1) / blocksize.x,
-                        (height + blocksize.y - 1) / blocksize.y);
+    const dim3 gridsize(
+        ((((width + blocksize.x - 1) / blocksize.x) + COARSE_FACTOR - 1) / COARSE_FACTOR),
+        (height + blocksize.y - 1) / blocksize.y);
 
     // Device global memory allocation
     float *A_d, *B_d, *C_d;
@@ -62,7 +72,7 @@ void matmul_gpu(float* A_h, float* B_h, float* C_h, int width, int height) {
     CUDA_CHECK(cudaMemcpy(B_d, B_h, size, cudaMemcpyHostToDevice));
 
     // kernel execution
-    Matmul_tiling<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, height);
+    Matmul_coarsening<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, height);
 
     // Error checking
     CUDA_CHECK(cudaGetLastError());
@@ -86,4 +96,8 @@ void matmul_cpu(float* A_h, float* B_h, float* C_h, int width, int height) {
             C_h[row * width + col] = Lval;
         }
     }
+}
+
+int coarse_factor(){
+    return COARSE_FACTOR;
 }

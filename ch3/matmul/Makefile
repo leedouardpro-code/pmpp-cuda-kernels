@@ -1,15 +1,10 @@
-# ==== Config ====
-NVCC := nvcc
-ARCH ?= sm_75
-NVCCFLAGS := -arch=$(ARCH) -O2 -I../../utils
+ROOT := ../..
+include $(ROOT)/common.mk
 
-COMMON_HDRS := ../../utils/cuda_check.h matmul.cuh
+TARGETS := test_matmul bench_matmul
+HDRS    := $(UTILS_HDRS) matmul.cuh
 
-# ==== Rules ====
-all: test_matmul bench_matmul
-
-matmul.o: matmul.cu $(COMMON_HDRS)
-	$(NVCC) $(NVCCFLAGS) -c $< -o $@
+all: $(TARGETS)
 
 test_matmul: test_matmul.cu matmul.o
 	$(NVCC) $(NVCCFLAGS) $^ -o $@
@@ -22,8 +17,5 @@ test: test_matmul
 
 bench: bench_matmul
 	./bench_matmul
-
-clean:
-	rm -f test_matmul bench_matmul *.o
-
+	
 .PHONY: all test bench clean
