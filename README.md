@@ -8,27 +8,35 @@ Every kernel here is written from scratch.
 
 ## Progress
 
-| Chapter | Topic | Kernel(s) | Status |
-|---|---|---|---|
-| 2 | Heterogeneous data parallel computing | `vecadd` | ✅ |
-| 3 | Multidimensional grids and data | `matmul`, `color2gray` | ✅ |
-| 4 | Compute architecture and scheduling | — | ✅ |
-| 5 | Memory architecture and data locality | `matmul_tiling` | ✅ |
-| 6 | Performance considerations | — | ⬜ |
+| Chapter | Topic | Key concept(s) | Kernel(s) | Status |
+|---|---|---|---|---|
+| 2 | Heterogeneous data parallel computing | `parallel computing`, `kernels`, `CUDA` | `vecadd` | ✅ |
+| 3 | Multidimensional grids and data | `multidimensional threading` | `matmul`, `color2gray` | ✅ |
+| 4 | Compute architecture and scheduling | `modern GPU architecture`, `thread scheduling`, `occupancy`, `SIMD efficiency` | — | ✅ |
+| 5 | Memory architecture and data locality | `memory access efficiency`, `performance metrics`, `tiling` | `matmul_tiling` | ✅ |
+| 6 | Performance considerations | `DRAM architecture`,`coarsening`,`coalescing`,`rpofiling` | `matmul_coarsening` | ✅ |
 
 ## Repository structure
 
 ```
 pmpp-cuda-kernels/
 ├── utils/
-│   └── cuda_check.h      # CUDA_CHECK error-handling macro, shared by all kernels
+│   ├── Makefile              # execute device_query_main
+│   ├── device_query_main.cu  # device_query_main, ask the hardware specifications
+│   ├── device_query.h
+│   ├── device_query.cu
+│   └── cuda_check.h          # CUDA_CHECK error-handling macro, shared by all kernels
 ├── ch2/
-│   ├── Makefile
-│   ├── vecadd.cuh
-│   ├── vecadd.cu
-│   ├── test_vecadd.cu
-│   └── bench_vecadd.cu
-└── ...
+│   ├── README.md
+│   └── vecadd/
+│       ├── Makefile
+│       ├── vecadd.cuh
+│       ├── vecadd.cu
+│       ├── test_vecadd.cu
+│       └── bench_vecadd.cu
+├── ch3/
+│   ├── ...
+...
 ```
 
 One folder per chapter. Each folder contains the kernel(s), and (from chapter 5 onward) profiling notes.
@@ -52,13 +60,6 @@ make            # build everything (tests + bench)
 make test       # build if needed, then run the tests
 make bench      # build if needed, then run the performance testing
 make clean      # remove binaries and objects
-```
-
-The target GPU architecture defaults to `sm_75` (Colab T4) and can be
-overridden without editing any file:
-
-```bash
-make ARCH=sm_87 test    # Jetson Orin Nano
 ```
 
 On Colab:
