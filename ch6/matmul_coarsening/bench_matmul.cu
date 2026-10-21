@@ -6,20 +6,16 @@
 #include "device_query.h"
 #include "matmul.cuh"
 
-#define BLOCK_W 16 // needs to be the same as TILE WIDTH
-#define BLOCK_H 16
-
 static int performance() {
     int width = 2 << 11;
     int height = 2 << 11;
     int warmup = 2;
 
-    const int COARSE_FACTOR = coarse_factor();
     const size_t size = (size_t)width * height * sizeof(float);
-    const dim3 blocksize(BLOCK_W, BLOCK_H);
+    const dim3 blocksize(TILE_WIDTH, TILE_WIDTH);
     const dim3 gridsize(
-        ((((width + blocksize.x - 1) / blocksize.x) + COARSE_FACTOR - 1) / COARSE_FACTOR),
-        (height + blocksize.y - 1) / blocksize.y);
+        (width + TILE_WIDTH * COARSE_FACTOR - 1) / (TILE_WIDTH * COARSE_FACTOR),
+        (height + TILE_WIDTH - 1) / TILE_WIDTH);
 
     // Host memory allocation
     float *A_h, *B_h, *C_h_gpu;
@@ -54,14 +50,14 @@ static int performance() {
 
     // Warmup
     for (int i = 0; i < warmup; i++) {
-        Matmul_coarsening<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, height);
+        Matmul_coarsening<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, width, width);
     }
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 
     // Kernel execution
     CUDA_CHECK(cudaEventRecord(start));
-    Matmul_coarsening<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, height);
+    Matmul_coarsening<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, width, width);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaEventRecord(stop));
     CUDA_CHECK(cudaEventSynchronize(stop));

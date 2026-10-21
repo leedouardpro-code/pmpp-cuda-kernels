@@ -3,15 +3,11 @@
 #include <stdio.h>
 
 #include "matmul.cuh"
-#define TILE_WIDTH 16
-#define COARSE_FACTOR 2
-#define BLOCK_W 16
-#define BLOCK_H 16
 
 // natural coalescing + tiling + coarsening
-__global__ void Matmul_coarsening(const float* A, const float* B, float* C, int width, int height) {
-    __shared__ float M[TILE_WIDTH][TILE_WIDTH];
-    __shared__ float N[TILE_WIDTH][TILE_WIDTH];
+__global__ void Matmul_coarsening(const float* A, const float* B, float* C, int M, int N, int K) {
+    __shared__ float As[TILE_WIDTH][TILE_WIDTH];
+    __shared__ float Bs[TILE_WIDTH][TILE_WIDTH];
     float Pval[COARSE_FACTOR];
 
     int bx = blockIdx.x;
@@ -25,26 +21,26 @@ __global__ void Matmul_coarsening(const float* A, const float* B, float* C, int 
         Pval[c] = 0.0f;
     }
 
-    for (int ph = 0; ph < (width + TILE_WIDTH - 1) / TILE_WIDTH; ph++) {
+    for (int ph = 0; ph < (K + TILE_WIDTH - 1) / TILE_WIDTH; ph++) {
         // Data transfert global memory to shared memory
-        if (row < height && TILE_WIDTH * ph + tx < width)
-            M[ty][tx] = A[row * width + TILE_WIDTH * ph + tx];
+        if (row < M && TILE_WIDTH * ph + tx < K)
+            As[ty][tx] = A[row * K + TILE_WIDTH * ph + tx];
         else
-            M[ty][tx] = 0.0f;
+            As[ty][tx] = 0.0f;
 
         for (int c = 0; c < COARSE_FACTOR; c++) {
             int col = colStart + c * TILE_WIDTH;
-            if (ph * TILE_WIDTH + ty < height && col < width)
-                N[ty][tx] = B[col + (ph * TILE_WIDTH + ty) * width];
+            if (ph * TILE_WIDTH + ty < K && col < N)
+                Bs[ty][tx] = B[col + (ph * TILE_WIDTH + ty) * N];
             else
-                N[ty][tx] = 0.0f;
+                Bs[ty][tx] = 0.0f;
 
             // synchronizing read after write
             __syncthreads();
 
             // FLOPs sur les tuiles chargées en mémoires
             for (int k = 0; k < TILE_WIDTH; k++) {
-                Pval[c] += M[ty][k] * N[k][tx];
+                Pval[c] += As[ty][k] * Bs[k][tx];
             }
             // synchronizing write after read
             __syncthreads();
@@ -52,54 +48,41 @@ __global__ void Matmul_coarsening(const float* A, const float* B, float* C, int 
     }
     for (int c = 0; c < COARSE_FACTOR; c++) {
         int col = colStart + c * TILE_WIDTH;
-        if (row < height && col < width) C[row * width + col] = Pval[c];
+        if (row < M && col < N) C[row * N + col] = Pval[c];
     }
 }
 
-void matmul_gpu(float* A_h, float* B_h, float* C_h, int width, int height) {
-    const size_t size = (size_t)width * height * sizeof(float);
-    const dim3 blocksize(BLOCK_W, BLOCK_H);
+void matmul_gpu(const float* A_h, const float* B_h, float* C_h, int M, int N, int K) {
+    const size_t sizeA = (size_t)M * K * sizeof(float);
+    const size_t sizeB = (size_t)K * N * sizeof(float);
+    const size_t sizeC = (size_t)M * N * sizeof(float);
+
+    const dim3 blocksize(TILE_WIDTH, TILE_WIDTH);
     const dim3 gridsize(
-        ((((width + blocksize.x - 1) / blocksize.x) + COARSE_FACTOR - 1) / COARSE_FACTOR),
-        (height + blocksize.y - 1) / blocksize.y);
+        ((((N + blocksize.x - 1) / blocksize.x) + COARSE_FACTOR - 1) / COARSE_FACTOR),
+        (M + blocksize.y - 1) / blocksize.y);
 
     // Device global memory allocation
     float *A_d, *B_d, *C_d;
-    CUDA_CHECK(cudaMalloc((void**)&A_d, size));
-    CUDA_CHECK(cudaMalloc((void**)&B_d, size));
-    CUDA_CHECK(cudaMalloc((void**)&C_d, size));
+    CUDA_CHECK(cudaMalloc((void**)&A_d, sizeA));
+    CUDA_CHECK(cudaMalloc((void**)&B_d, sizeB));
+    CUDA_CHECK(cudaMalloc((void**)&C_d, sizeC));
 
     // Host to Device data transfert
-    CUDA_CHECK(cudaMemcpy(A_d, A_h, size, cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(B_d, B_h, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(A_d, A_h, sizeA, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(B_d, B_h, sizeB, cudaMemcpyHostToDevice));
 
     // kernel execution
-    Matmul_coarsening<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, height);
+    Matmul_coarsening<<<gridsize, blocksize>>>(A_d, B_d, C_d, M, N, K);
 
     // Error checking
     CUDA_CHECK(cudaGetLastError());
 
     // Device to Host data transfert
-    CUDA_CHECK(cudaMemcpy(C_h, C_d, size, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(C_h, C_d, sizeC, cudaMemcpyDeviceToHost));
 
     // Free Device allocated memory
     CUDA_CHECK(cudaFree(A_d));
     CUDA_CHECK(cudaFree(B_d));
     CUDA_CHECK(cudaFree(C_d));
-}
-
-void matmul_cpu(float* A_h, float* B_h, float* C_h, int width, int height) {
-    for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width; col++) {
-            float Lval = 0;
-            for (int k = 0; k < width; k++) {
-                Lval += A_h[row * width + k] * B_h[k * width + col];
-            }
-            C_h[row * width + col] = Lval;
-        }
-    }
-}
-
-int coarse_factor(){
-    return COARSE_FACTOR;
 }
