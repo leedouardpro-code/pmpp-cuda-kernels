@@ -1,3 +1,5 @@
+// Early prototype of device query fonction in /utils
+
 #include <cuda_check.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
