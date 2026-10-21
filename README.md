@@ -20,27 +20,58 @@ Every kernel here is written from scratch.
 
 ```
 pmpp-cuda-kernels/
+├── .clang-format
+├── .gitignore
+├── README.md
+├── common.mk                   # shared build settings (nvcc flags, -arch, pattern rules)
 ├── utils/
-│   ├── Makefile              # execute device_query_main
-│   ├── device_query_main.cu  # device_query_main, ask the hardware specifications
+│   ├── Makefile                # `make query` prints the GPU specs
+│   ├── cuda_check.h            # CUDA_CHECK error-handling macro, shared by all kernels
 │   ├── device_query.h
-│   ├── device_query.cu
-│   └── cuda_check.h          # CUDA_CHECK error-handling macro, shared by all kernels
+│   ├── device_query.cu         # print_device_props(): limits, memory, theoretical peaks
+│   └── device_query_main.cu
 ├── ch2/
 │   └── vecadd/
 │       ├── Makefile
 │       ├── vecadd.cuh
-│       ├── vecadd.cu
-│       ├── test_vecadd.cu
-│       └── bench_vecadd.cu
+│       ├── vecadd.cu           # kernel + GPU wrapper + CPU reference
+│       ├── test_vecadd.cu      # GPU vs CPU correctness tests
+│       └── bench_vecadd.cu     # timing
 ├── ch3/
-│   ├── ...
-...
-
+│   ├── color2gray/
+│   │   ├── Makefile
+│   │   ├── color2gray.cuh
+│   │   ├── color2gray.cu
+│   │   ├── test_color2gray.cu
+│   │   └── bench_color2gray.cu
+│   └── matmul/                 # naive matmul
+│       ├── Makefile
+│       ├── matmul.cuh
+│       ├── matmul.cu
+│       ├── test_matmul.cu
+│       └── bench_matmul.cu
+├── ch4/
+│   ├── README.md               # exercises: warps, divergence, occupancy
+│   └── device_query.cu
+├── ch5/
+│   ├── README.md               # exercises: tiling, roofline, occupancy
+│   └── matmul_tiling/          # shared-memory tiled matmul
+│       ├── Makefile
+│       ├── matmul.cuh
+│       ├── matmul.cu
+│       ├── test_matmul.cu
+│       └── bench_matmul.cu
+└── ch6/
+    └── matmul_coarsening/      # tiling + thread coarsening
+        ├── Makefile
+        ├── matmul.cuh
+        ├── matmul.cu
+        ├── test_matmul.cu
+        └── bench_matmul.cu
 
 ```
 
-One folder per chapter. Each folder contains the kernel(s), and (from chapter 5 onward) profiling notes.
+One folder per chapter. Each kernel folder follows the same layout: `xxx.cu` (kernel, GPU wrapper, CPU reference), `test_xxx.cu` (correctness vs CPU), `bench_xxx.cu` (timing), and a `Makefile` with `test` / `bench` / `clean` targets.
 
 ## Hardware & environment
 
