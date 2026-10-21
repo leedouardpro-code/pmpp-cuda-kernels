@@ -13,7 +13,7 @@ __global__ void col2gray_kernel(float* Pin, float* Pout, int width, int height) 
         float r = Pin[colOffset];
         float g = Pin[colOffset + 1];
         float b = Pin[colOffset + 2];
-        Pout[grayOffset] = 0.21 * r + 0.72 * g + 0.07 * b;
+        Pout[grayOffset] = 0.21f * r + 0.72f * g + 0.07f * b;
     }
 }
 
