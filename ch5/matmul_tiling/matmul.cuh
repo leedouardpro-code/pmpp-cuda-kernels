@@ -1,8 +1,12 @@
 #ifndef MATMUL_CUH
 #define MATMUL_CUH
 
-__global__ void Matmul_tiling(const float* A, const float* B, float* C, int width, int height);
-void matmul_gpu(float* A_h, float* B_h, float* C_h, int width, int height);
-void matmul_cpu(float* A_h, float* B_h, float* C_h, int width, int height);
+#ifndef TILE_WIDTH
+#define TILE_WIDTH 32
+
+#endif
+
+__global__ void Matmul_tiling(const float* A, const float* B, float* C, int M, int N, int K);
+void matmul_gpu(const float* A_h, const float* B_h, float* C_h, int M, int N, int K);
 
 #endif

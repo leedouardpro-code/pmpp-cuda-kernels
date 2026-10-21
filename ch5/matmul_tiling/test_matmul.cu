@@ -1,89 +1,66 @@
+#include <algorithm>
+#include <cfloat>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <vector>
 #include <cuda_runtime.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "matmul.cuh"
-#define TILE_WIDTH 32
 
-static int check(int width, int height, const float tolerence, int visual = 0) {
-    const size_t size = (size_t)width * height * sizeof(float);
-
-    // Host memory allocation
-    float *A_h, *B_h, *C_h_gpu, *C_h_cpu;
-    A_h = (float*)malloc(size);
-    B_h = (float*)malloc(size);
-    C_h_gpu = (float*)malloc(size);
-    C_h_cpu = (float*)malloc(size);
-
-    // Initialisation
-    for (int i = 0; i < width * height; i++) {
-        A_h[i] = rand() / (float)RAND_MAX;
-        B_h[i] = rand() / (float)RAND_MAX;
-    }
-
-    // Kernel execution
-    matmul_gpu(A_h, B_h, C_h_gpu, width, height);
-
-    // CPU execution
-    matmul_cpu(A_h, B_h, C_h_cpu, width, height);
-
-    // Verification
-    if (visual) {
-        printf("\n===== GPU Visual =====\n");
-        for (int row = 0; row < height; row++) {
-            printf("|");
-            for (int col = 0; col < width; col++) {
-                printf("%f|", C_h_gpu[row * width + col]);
+static void matmul_ref(const std::vector<float>& A, const std::vector<float>& B,
+                       std::vector<double>& C, int M, int N, int K) {
+    std::fill(C.begin(), C.end(), 0.0);
+    for (int i = 0; i < M; i++) {
+        for (int k = 0; k < K; k++) {
+            const double a = A[(size_t)i * K + k];
+            for (int j = 0; j < N; j++) {
+                C[(size_t)i * N + j] += a * B[(size_t)k * N + j];
             }
-            printf("\n");
-        }
-        printf("\n===== CPU Visual =====\n");
-        for (int row = 0; row < height; row++) {
-            printf("|");
-            for (int col = 0; col < width; col++) {
-                printf("%f|", C_h_cpu[row * width + col]);
-            }
-            printf("\n");
         }
     }
+}
 
-    for (int i = 0; i < width * height; i++) {
-        if (fabsf(C_h_gpu[i] - C_h_cpu[i]) > tolerence) {
-            printf("[FAIL] test : width=%d, height=%d\n at index=%d:\n gpu:%f\n cpu:%f\n", width,
-                   height, i, C_h_gpu[i], C_h_cpu[i]);
-            free(A_h);
-            free(B_h);
-            free(C_h_gpu);
-            free(C_h_cpu);
+static int check(int M, int N, int K) {
+    std::vector<float> A((size_t)M * K), B((size_t)K * N), C((size_t)M * N);
+    std::vector<double> ref((size_t)M * N);
+
+    for (float& x : A) x = rand() / (float)RAND_MAX;
+    for (float& x : B) x = rand() / (float)RAND_MAX;
+    // Poison the output: an element the kernel forgets to write is detected.
+    std::fill(C.begin(), C.end(), NAN);
+
+    matmul_gpu(A.data(), B.data(), C.data(), M, N, K);
+    matmul_ref(A, B, ref, M, N, K);
+
+    const double rel_tol = (double)K * FLT_EPSILON;
+    double max_rel = 0.0;
+    for (size_t idx = 0; idx < C.size(); idx++) {
+        const double err = std::fabs((double)C[idx] - ref[idx]);
+        const double bound = rel_tol * std::fabs(ref[idx]);
+        if (!(err <= bound)) {  // written this way so that NaN also fails
+            printf("[FAIL] M=%4d N=%4d K=%4d at (row %zu, col %zu): gpu=%.8g ref=%.8g "
+                   "abs.err=%.3g bound=%.3g\n",
+                   M, N, K, idx / N, idx % N, C[idx], ref[idx], err, bound);
             return 1;
         }
+        if (ref[idx] != 0.0) max_rel = std::max(max_rel, err / std::fabs(ref[idx]));
     }
-    printf("[PASS] test : width=%d, height=%d\n", width, height);
-
-    // Free Host memory
-    free(A_h);
-    free(B_h);
-    free(C_h_gpu);
-    free(C_h_cpu);
+    printf("[PASS] M=%4d N=%4d K=%4d  max rel. err = %.2e  (tol %.2e)\n", M, N, K, max_rel,
+           rel_tol);
     return 0;
 }
 
 int main(void) {
-    int width[] = {1, 33, 2 << 7, 2 << 9};
-    int height[] = {1, 33, 2 << 7, 2 << 9};
+    srand(42);  // fixed seed: reproducible inputs
+
+    const int cases[][3] = {
+        {1, 1, 1},       {33, 65, 17},   {17, 33, 65},  {64, 1, 64},     {1, 64, 64},
+        {64, 64, 1},     {31, 32, 33},   {257, 129, 511}, {1024, 1024, 1024},
+    };
+
     int failures = 0;
+    for (const auto& c : cases) failures += check(c[0], c[1], c[2]);
 
-    // test harness
-    for (int i = 0; i < sizeof(width) / sizeof(width[0]); i++) {
-        failures +=
-            check(width[i], height[i],
-                  1e-4);  // tolerance is ajusted because cpu and gpu dont round off the same way
-    }
-
-    // visual test
-    // int w = 33;
-    // int h = 33;
-    // check(w, h, 1e-4, 1);
+    printf("%s: %d failure(s)\n", failures ? "FAILED" : "ALL PASSED", failures);
     return failures ? EXIT_FAILURE : EXIT_SUCCESS;
 }
