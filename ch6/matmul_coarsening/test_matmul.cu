@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include "matmul.cuh"
-#define TILE_WIDTH 32
+#define TILE_WIDTH 16
 
 static int check(int width, int height, const float tolerence, int visual = 0) {
     const size_t size = (size_t)width * height * sizeof(float);

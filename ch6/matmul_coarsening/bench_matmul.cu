@@ -6,7 +6,7 @@
 #include "device_query.h"
 #include "matmul.cuh"
 
-#define BLOCK_W 16
+#define BLOCK_W 16 // needs to be the same as TILE WIDTH
 #define BLOCK_H 16
 
 static int performance() {
