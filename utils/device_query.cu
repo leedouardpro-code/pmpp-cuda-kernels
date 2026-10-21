@@ -29,20 +29,20 @@ void print_device_props(int dev) {
 
     printf("\n-- Memory --\n");
     printf("Global memory           : %.2f GB\n", p.totalGlobalMem / (1024.0 * 1024.0 * 1024.0));
-    printf("L2 cache                : %d KB\n", p.l2CacheSize / 1024);
+    printf("L2 cache                : %d KiB\n", p.l2CacheSize / 1024);
     printf("Memory bus width        : %d bits\n", p.memoryBusWidth);
     printf("Memory clock            : %.2f GHz\n", memClockKHz * 1e-6);
-    printf("Shared memory per block : %f KB\n", p.sharedMemPerBlock * 1e-3); //corriger 
-    printf("Shared memory per SM    : %f KB\n", p.sharedMemPerMultiprocessor * 1e-3); //corriger
+    printf("Shared memory per block : %f KiB\n", p.sharedMemPerBlock * 1e-3); //corriger 
+    printf("Shared memory per SM    : %f KiB\n", p.sharedMemPerMultiprocessor * 1e-3); //corriger
     printf("Registers per block     : %d \n", p.regsPerBlock);
     printf("Registers per SM        : %d \n", p.regsPerMultiprocessor);
-    printf("Shared opt-in / block   : %.1f KB\n", p.sharedMemPerBlockOptin / 1024.0);
+    printf("Shared opt-in / block   : %.1f KiB\n", p.sharedMemPerBlockOptin / 1024.0);
 
     printf("\n-- Derived --\n");
     double bw = 2.0 * memClockKHz * 1e3 * (p.memoryBusWidth / 8.0) / 1e9;
     double GFLOPS = 1e-6 * 128 * p.multiProcessorCount * clockKHz * 2;
     printf("Theoretical BW          : %.1f GB/s\n", bw);
-    printf("Theoretical pic GFLOPS  : %.1f GFLOPS\n", GFLOPS);
+    printf("Theoretical FP32 peak   : %.1f GFLOP/s (at nominal clock)\n", GFLOPS);
 
     printf("\n");
 }
