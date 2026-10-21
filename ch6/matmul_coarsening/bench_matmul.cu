@@ -6,6 +6,9 @@
 #include "device_query.h"
 #include "matmul.cuh"
 
+#define BLOCK_W 16
+#define BLOCK_H 16
+
 static int performance() {
     int width = 2 << 11;
     int height = 2 << 11;
@@ -13,7 +16,7 @@ static int performance() {
 
     const int COARSE_FACTOR = coarse_factor();
     const size_t size = (size_t)width * height * sizeof(float);
-    const dim3 blocksize(32, 32);
+    const dim3 blocksize(BLOCK_W, BLOCK_H);
     const dim3 gridsize(
         ((((width + blocksize.x - 1) / blocksize.x) + COARSE_FACTOR - 1) / COARSE_FACTOR),
         (height + blocksize.y - 1) / blocksize.y);
@@ -93,9 +96,4 @@ static int performance() {
 
     return 0;
 }
-int main(void) { 
-    int devCount;
-    cudaGetDeviceCount(&devCount);
-    for(int d = 0; d< devCount; d++) print_device_props(0);
-    performance();
- }
+int main(void) { performance(); }

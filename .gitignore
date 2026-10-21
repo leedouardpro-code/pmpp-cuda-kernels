@@ -1,1 +1,23 @@
+# Executables built by the Makefiles (no file extension)
+**/test_*
+**/bench_*
+utils/device_query
+# ...but keep their sources (negation must come after the pattern it overrides)
+!**/test_*.cu
+!**/bench_*.cu
+!**/bench_*.py
+
+# Object files
+*.o
+
+# Profiler reports
+*.ncu-rep
+*.nsys-rep
+*.sqlite
+
+# Python / notebooks
+__pycache__/
+.ipynb_checkpoints/
+
+# Editor
 .vscode/

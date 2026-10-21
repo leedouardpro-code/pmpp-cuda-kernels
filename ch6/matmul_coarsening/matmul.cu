@@ -3,8 +3,10 @@
 #include <stdio.h>
 
 #include "matmul.cuh"
-#define TILE_WIDTH 32
+#define TILE_WIDTH 16
 #define COARSE_FACTOR 2
+#define BLOCK_W 16
+#define BLOCK_H 16
 
 // natural coalescing + tiling + coarsening
 __global__ void Matmul_coarsening(const float* A, const float* B, float* C, int width, int height) {
@@ -56,7 +58,7 @@ __global__ void Matmul_coarsening(const float* A, const float* B, float* C, int 
 
 void matmul_gpu(float* A_h, float* B_h, float* C_h, int width, int height) {
     const size_t size = (size_t)width * height * sizeof(float);
-    const dim3 blocksize(32, 32);
+    const dim3 blocksize(BLOCK_W, BLOCK_H);
     const dim3 gridsize(
         ((((width + blocksize.x - 1) / blocksize.x) + COARSE_FACTOR - 1) / COARSE_FACTOR),
         (height + blocksize.y - 1) / blocksize.y);
