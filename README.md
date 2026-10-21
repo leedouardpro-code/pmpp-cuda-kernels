@@ -95,14 +95,6 @@ make bench    # build, then run the benchmark
 make clean
 ```
 
-On Colab:
-
-```python
-!git clone https://github.com/leedouardpro-code/pmpp-cuda-kernels.git
-%cd pmpp-cuda-kernels/ch2
-!nvidia-smi --query-gpu=name,compute_cap --format=csv   # check GPU & arch
-!make test
-```
 ## Conventions
 
 - `_h` / `_d` suffixes for host/device pointers (book convention)
