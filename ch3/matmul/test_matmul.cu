@@ -1,8 +1,3 @@
-// test_matmul.cu
-// Correctness test for matmul_gpu(): C = A * B, row-major,
-// A: M x K, B: K x N, C: M x N.
-// Same file for ch3/matmul, ch5/matmul_tiling and ch6/matmul_coarsening.
-
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -10,7 +5,6 @@
 #include <cstdlib>
 #include <vector>
 #include <cuda_runtime.h>
-
 #include "matmul.cuh"
 
 // CPU reference accumulated in double: its own rounding error is negligible
