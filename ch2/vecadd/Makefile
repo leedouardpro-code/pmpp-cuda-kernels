@@ -6,11 +6,11 @@ HDRS    := $(UTILS_HDRS) vecadd.cuh
 
 all: $(TARGETS)
 
-test_vecadd: test_vecadd.cu vecadd.o
-	$(NVCC) $(NVCCFLAGS) $^ -o $@
+test_vecadd: test_vecadd.cu vecadd.o $(HDRS)
+	$(NVCC) $(NVCCFLAGS) $(filter %.cu %.o,$^) -o $@
 
-bench_vecadd: bench_vecadd.cu vecadd.o
-	$(NVCC) $(NVCCFLAGS) $^ -o $@
+bench_vecadd: bench_vecadd.cu vecadd.o $(HDRS)
+	$(NVCC) $(NVCCFLAGS) $(filter %.cu %.o,$^) -o $@
 
 test: test_vecadd
 	./test_vecadd
