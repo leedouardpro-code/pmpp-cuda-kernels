@@ -6,11 +6,11 @@ HDRS    := $(UTILS_HDRS) matmul.cuh
 
 all: $(TARGETS)
 
-test_matmul: test_matmul.cu matmul.o
-	$(NVCC) $(NVCCFLAGS) $^ -o $@
+test_matmul: test_matmul.cu matmul.o $(HDRS)
+	$(NVCC) $(NVCCFLAGS) $(filter %.cu %.o,$^) -o $@
 
-bench_matmul: bench_matmul.cu matmul.o
-	$(NVCC) $(NVCCFLAGS) $^ -o $@
+bench_matmul: bench_matmul.cu matmul.o $(HDRS)
+	$(NVCC) $(NVCCFLAGS) $(filter %.cu %.o,$^) -o $@
 
 test: test_matmul
 	./test_matmul

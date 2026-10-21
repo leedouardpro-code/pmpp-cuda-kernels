@@ -73,7 +73,7 @@ void matmul_gpu(const float* A_h, const float* B_h, float* C_h, int M, int N, in
     CUDA_CHECK(cudaMemcpy(B_d, B_h, sizeB, cudaMemcpyHostToDevice));
 
     // kernel execution
-    Matmul_coarsening<<<gridsize, blocksize>>>(A_d, B_d, C_d, M, N, K);
+    matmul_launch(A_d, B_d, C_d, M, N, K);
 
     // Error checking
     CUDA_CHECK(cudaGetLastError());
@@ -85,4 +85,12 @@ void matmul_gpu(const float* A_h, const float* B_h, float* C_h, int M, int N, in
     CUDA_CHECK(cudaFree(A_d));
     CUDA_CHECK(cudaFree(B_d));
     CUDA_CHECK(cudaFree(C_d));
+}
+
+void matmul_launch(const float* A_d, const float* B_d, float* C_d, int M, int N, int K) {
+    const dim3 blocksize(TILE_WIDTH, TILE_WIDTH);
+    // each block covers TILE_WIDTH * COARSE_FACTOR columns of C
+    const dim3 gridsize((N + TILE_WIDTH * COARSE_FACTOR - 1) / (TILE_WIDTH * COARSE_FACTOR),
+                        (M + TILE_WIDTH - 1) / TILE_WIDTH);
+    Matmul_coarsening<<<gridsize, blocksize>>>(A_d, B_d, C_d, M, N, K);
 }

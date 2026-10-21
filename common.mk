@@ -7,7 +7,10 @@ NVCCFLAGS := -arch=$(ARCH) -O2 -I$(ROOT)/utils --ptxas-options=-v
 UTILS_HDRS := $(ROOT)/utils/cuda_check.h 
 
 # ==== common rules ====
-%.o: %.cu $(HDRS)
+# Secondary expansion: $$(HDRS) is expanded when the rule is used,
+# i.e. after each chapter Makefile has defined HDRS.
+.SECONDEXPANSION:
+%.o: %.cu $$(HDRS)
 	$(NVCC) $(NVCCFLAGS) -c $< -o $@
 
 # ==== common targets ====
