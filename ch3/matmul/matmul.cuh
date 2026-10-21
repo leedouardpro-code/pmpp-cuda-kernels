@@ -1,8 +1,9 @@
 #ifndef MATMUL_CUH
 #define MATMUL_CUH
 
-__global__ void Matmul(const float* A, const float* B, float* C, int width, int height);
-void matmul_gpu(float* A_h, float* B_h, float* C_h, int width, int height);
-void matmul_cpu(float* A_h, float* B_h, float* C_h, int width, int height);
+// C = A * B, row-major. A: M x K, B: K x N, C: M x N.
+__global__ void Matmul(const float* A, const float* B, float* C, int M, int N, int K);
+// Host wrapper: allocates device memory, copies, launches, copies back.
+void matmul_gpu(const float* A_h, const float* B_h, float* C_h, int M, int N, int K);
 
-#endif
+#endif  // MATMUL_CUH

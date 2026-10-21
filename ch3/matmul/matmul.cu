@@ -4,57 +4,49 @@
 
 #include "matmul.cuh"
 
-__global__ void Matmul(const float* A, const float* B, float* C, int width, int height) {
+__global__ void Matmul(const float* A, const float* B, float* C, int M, int N, int K) {
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
-    if (row < height && col < width) {
+    if (row < M && col < N) {
         float Lval = 0;
-        for (int k = 0; k < width; k++) {
-            Lval += A[row * width + k] * B[k * width + col];
+        for (int k = 0; k < K; k++) {
+            Lval += A[row * K + k] * B[k * N + col];
         }
-        C[row * width + col] = Lval;
+        C[row * N + col] = Lval;
     }
 }
 
-void matmul_gpu(float* A_h, float* B_h, float* C_h, int width, int height) {
-    const size_t size = (size_t)width * height * sizeof(float);
+void matmul_gpu(const float* A_h, const float* B_h, float* C_h, int M, int N, int K) {
+    const size_t sizeA = (size_t)M * K * sizeof(float);
+    const size_t sizeB = (size_t)K * N * sizeof(float);
+    const size_t sizeC = (size_t)M * N * sizeof(float);
+
+
     const dim3 blocksize(32, 32);
-    const dim3 gridsize((width + blocksize.x - 1) / blocksize.x,
-                        (height + blocksize.y - 1) / blocksize.y);
+    const dim3 gridsize((N + blocksize.x - 1) / blocksize.x,
+                        (M + blocksize.y - 1) / blocksize.y);
 
     // Device global memory allocation
     float *A_d, *B_d, *C_d;
-    CUDA_CHECK(cudaMalloc((void**)&A_d, size));
-    CUDA_CHECK(cudaMalloc((void**)&B_d, size));
-    CUDA_CHECK(cudaMalloc((void**)&C_d, size));
+    CUDA_CHECK(cudaMalloc((void**)&A_d, sizeA));
+    CUDA_CHECK(cudaMalloc((void**)&B_d, sizeB));
+    CUDA_CHECK(cudaMalloc((void**)&C_d, sizeC));
 
     // Host to Device data transfert
-    CUDA_CHECK(cudaMemcpy(A_d, A_h, size, cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(B_d, B_h, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(A_d, A_h, sizeA, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(B_d, B_h, sizeB, cudaMemcpyHostToDevice));
 
     // kernel execution
-    Matmul<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, height);
+    Matmul<<<gridsize, blocksize>>>(A_d, B_d, C_d, M, N, K);
 
     // Error checking
     CUDA_CHECK(cudaGetLastError());
 
     // Device to Host data transfert
-    CUDA_CHECK(cudaMemcpy(C_h, C_d, size, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(C_h, C_d, sizeC, cudaMemcpyDeviceToHost));
 
     // Free Device allocated memory
     CUDA_CHECK(cudaFree(A_d));
     CUDA_CHECK(cudaFree(B_d));
     CUDA_CHECK(cudaFree(C_d));
-}
-
-void matmul_cpu(float* A_h, float* B_h, float* C_h, int width, int height) {
-    for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width; col++) {
-            float Lval = 0;
-            for (int k = 0; k < width; k++) {
-                Lval += A_h[row * width + k] * B_h[k * width + col];
-            }
-            C_h[row * width + col] = Lval;
-        }
-    }
 }

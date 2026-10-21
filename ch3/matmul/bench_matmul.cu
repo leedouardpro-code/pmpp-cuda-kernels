@@ -38,7 +38,7 @@ static int performance() {
 
     // Warmup
     for (int i = 0; i < warmup; i++) {
-        Matmul<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, height);
+        Matmul<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, width, width);
     }
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -53,7 +53,7 @@ static int performance() {
 
     // Kernel execution
     CUDA_CHECK(cudaEventRecord(start));
-    Matmul<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, height);
+    Matmul<<<gridsize, blocksize>>>(A_d, B_d, C_d, width, width, width);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaEventRecord(stop));
     CUDA_CHECK(cudaEventSynchronize(stop));
