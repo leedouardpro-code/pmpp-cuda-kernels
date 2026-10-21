@@ -1,88 +1,71 @@
-#include <cuda_runtime.h>
-#include <stdio.h>
-#include <stdlib.h>
+// bench_vecadd.cu
+// Kernel-only timing of vecAddKernel: C = A + B on N floats.
+// Memory-bound kernel: the relevant metric is effective bandwidth,
+//   BW = (bytes read + bytes written) / time = 3 * N * 4 bytes / time.
+// N must be much larger than the L2 cache (32 MiB on the RTX 5060 Laptop),
+// otherwise we measure L2 bandwidth, not DRAM. Default N = 2^26 (256 MiB per array).
+//
+// Usage: ./bench_vecadd [log2_N] [reps]   (defaults: 26, 30)
 
+#include <cuda_runtime.h>
+
+#include <cstdio>
+#include <cstdlib>
+#include <vector>
+
+#include "bench.h"
 #include "cuda_check.h"
 #include "vecadd.cuh"
 
-static int performance() {
-    const int N = 1 << 20;
-    const size_t size = sizeof(float) * N;
+#define CSV_HEADER "CSV_HEADER,kernel,N,reps,median_ms,min_ms,max_ms,stddev_ms,gbps"
+
+int main(int argc, char** argv) {
+    const int log2n = (argc > 1) ? atoi(argv[1]) : 26;
+    const int reps = (argc > 2) ? atoi(argv[2]) : 30;
+    if (log2n < 0 || log2n > 28 || reps <= 0) {
+        fprintf(stderr, "usage: %s [log2_N in 0..28] [reps > 0]\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+    const int N = 1 << log2n;
+    const size_t size = (size_t)N * sizeof(float);
     const int blocksize = 256;
     const int gridsize = (N + blocksize - 1) / blocksize;
-    const int warmup = 2;
 
-    // Host memory allocation
-    float *A_h, *B_h, *C_h_gpu;
-    A_h = (float*)malloc(size);
-    B_h = (float*)malloc(size);
-    C_h_gpu = (float*)malloc(size);
+    cudaDeviceProp prop;
+    CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
 
-    // Init
+    std::vector<float> A_h(N), B_h(N);
     for (int i = 0; i < N; i++) {
         A_h[i] = (float)i;
-        B_h[i] = (float)i;
+        B_h[i] = (float)(2 * i);
     }
 
-    // Device memory allocation
     float *A_d, *B_d, *C_d;
     CUDA_CHECK(cudaMalloc((void**)&A_d, size));
     CUDA_CHECK(cudaMalloc((void**)&B_d, size));
     CUDA_CHECK(cudaMalloc((void**)&C_d, size));
+    CUDA_CHECK(cudaMemcpy(A_d, A_h.data(), size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(B_d, B_h.data(), size, cudaMemcpyHostToDevice));
 
-    cudaEvent_t start, stop;
-    CUDA_CHECK(cudaEventCreate(&start));
-    CUDA_CHECK(cudaEventCreate(&stop));
-    float ms_h2d, ms_d2h, ms_k;
+    const BenchStats k =
+        bench_kernel([&] { vecAddKernel<<<gridsize, blocksize>>>(A_d, B_d, C_d, N); }, reps);
 
-    // Warmup
-    for (int i = 0; i < warmup; i++) {
-        vecAddKernel<<<gridsize, blocksize>>>(A_d, B_d, C_d, N);
-    }
-    CUDA_CHECK(cudaGetLastError());
-    CUDA_CHECK(cudaDeviceSynchronize());
+    const double bytes = 3.0 * size;  // 2 reads + 1 write
+    const double gbps = bytes / (k.median_ms * 1e-3) / 1e9;
 
-    // Host to Device data transfert
-    CUDA_CHECK(cudaEventRecord(start));
-    CUDA_CHECK(cudaMemcpy(A_d, A_h, size, cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(B_d, B_h, size, cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaEventRecord(stop));
-    CUDA_CHECK(cudaEventSynchronize(stop));
-    CUDA_CHECK(cudaEventElapsedTime(&ms_h2d, start, stop));
+    printf("GPU        : %s\n", prop.name);
+    printf("Kernel     : vecadd, N = 2^%d = %d floats (%.0f MiB per array)\n", log2n, N,
+           size / (1024.0 * 1024.0));
+    printf("Kernel time: median %.4f ms | min %.4f | max %.4f | stddev %.4f (%.1f %%) | %d reps\n",
+           k.median_ms, k.min_ms, k.max_ms, k.stddev_ms, 100.0 * k.stddev_ms / k.median_ms,
+           k.reps);
+    printf("Effective bandwidth: %.1f GB/s (3*N*4 bytes / median time)\n", gbps);
+    printf("%s\n", CSV_HEADER);
+    printf("CSV,vecadd,%d,%d,%.4f,%.4f,%.4f,%.4f,%.1f\n", N, k.reps, k.median_ms, k.min_ms,
+           k.max_ms, k.stddev_ms, gbps);
 
-    // Kernel execution
-    CUDA_CHECK(cudaEventRecord(start));
-    vecAddKernel<<<gridsize, blocksize>>>(A_d, B_d, C_d, N);
-    CUDA_CHECK(cudaGetLastError());
-    CUDA_CHECK(cudaEventRecord(stop));
-    CUDA_CHECK(cudaEventSynchronize(stop));
-    CUDA_CHECK(cudaEventElapsedTime(&ms_k, start, stop));
-
-    // Device to Host data transfert
-    CUDA_CHECK(cudaEventRecord(start));
-    CUDA_CHECK(cudaMemcpy(C_h_gpu, C_d, size, cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaEventRecord(stop));
-    CUDA_CHECK(cudaEventSynchronize(stop));
-    CUDA_CHECK(cudaEventElapsedTime(&ms_d2h, start, stop));
-
-    float total = ms_h2d + ms_k + ms_d2h;
-    printf("\n===== Performance =====\n");
-    printf("N = %d ,(%zu bytes per array)\n", N, size);
-    printf("H2D (A+B) : %8.3f ms\n", ms_h2d);
-    printf("Kernel    : %8.3f ms\n", ms_k);
-    printf("D2H (C)   : %8.3f ms\n", ms_d2h);
-    printf("Transfers : %5.1f %% of total\n", 100.0f * (ms_h2d + ms_d2h) / total);
-
-    CUDA_CHECK(cudaEventDestroy(start));
-    CUDA_CHECK(cudaEventDestroy(stop));
     CUDA_CHECK(cudaFree(A_d));
     CUDA_CHECK(cudaFree(B_d));
     CUDA_CHECK(cudaFree(C_d));
-    free(A_h);
-    free(B_h);
-    free(C_h_gpu);
-
     return 0;
 }
-
-int main(void) { performance(); }
