@@ -12,7 +12,7 @@ ptxas info    : Compiling entry function '_Z6MatmulPKfS0_Pfiii' for 'sm_120'
 ptxas info    : Function properties for _Z6MatmulPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 32 registers, used 0 barriers
-ptxas info    : Compile time = 5.125 ms
+ptxas info    : Compile time = 4.685 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  bench_matmul.cu matmul.o -o bench_matmul
@@ -32,7 +32,7 @@ ptxas info    : Compiling entry function '_Z13Matmul_tilingPKfS0_Pfiii' for 'sm_
 ptxas info    : Function properties for _Z13Matmul_tilingPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 36 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 4.577 ms
+ptxas info    : Compile time = 4.274 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 bench_matmul.cu matmul.o -o bench_matmul
@@ -52,7 +52,7 @@ ptxas info    : Compiling entry function '_Z13Matmul_tilingPKfS0_Pfiii' for 'sm_
 ptxas info    : Function properties for _Z13Matmul_tilingPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 38 registers, used 1 barriers, 8192 bytes smem
-ptxas info    : Compile time = 5.103 ms
+ptxas info    : Compile time = 5.436 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 bench_matmul.cu matmul.o -o bench_matmul
@@ -72,7 +72,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 36 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 4.162 ms
+ptxas info    : Compile time = 4.316 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=1 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=1 bench_matmul.cu matmul.o -o bench_matmul
@@ -92,7 +92,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 40 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 8.731 ms
+ptxas info    : Compile time = 8.675 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=2 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=2 bench_matmul.cu matmul.o -o bench_matmul
@@ -112,7 +112,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 40 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 13.576 ms
+ptxas info    : Compile time = 14.075 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=4 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=4 bench_matmul.cu matmul.o -o bench_matmul
@@ -132,7 +132,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 38 registers, used 1 barriers, 8192 bytes smem
-ptxas info    : Compile time = 5.331 ms
+ptxas info    : Compile time = 5.780 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=1 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=1 bench_matmul.cu matmul.o -o bench_matmul
@@ -152,7 +152,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 40 registers, used 1 barriers, 8192 bytes smem
-ptxas info    : Compile time = 12.533 ms
+ptxas info    : Compile time = 14.078 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=2 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=2 bench_matmul.cu matmul.o -o bench_matmul
@@ -172,7 +172,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 40 registers, used 1 barriers, 8192 bytes smem
-ptxas info    : Compile time = 22.241 ms
+ptxas info    : Compile time = 22.144 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 bench_matmul.cu matmul.o -o bench_matmul
