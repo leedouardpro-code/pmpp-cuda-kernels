@@ -1,70 +1,90 @@
 # pmpp-cuda-kernels
 
-Hand-written CUDA kernels following *Programming Massively Parallel Processors* (4th edition, Hwu, Kirk & El Hajj), studied alongside the [GPU MODE](https://github.com/gpu-mode/lectures) lecture series.
+Hand-written CUDA kernels following *Programming Massively Parallel Processors* (4th ed., Hwu, Kirk & El Hajj), **tested, benchmarked against NVIDIA libraries and analysed** on an RTX 5060 Laptop GPU (Blackwell, sm_120).
 
-**Goal:** build a solid understanding of GPU architecture (memory hierarchy, coalescing, occupancy, warp scheduling) as groundwork for deploying quantized TensorRT detection models on a **Jetson Orin Nano**, with Nsight profiling.
+The goal is not only to write the kernels of the book, but to work on them the way GPU performance work is done in practice: **correct first, measured rigorously, compared with the vendor library, and explained with the hardware model and the profiler.**
 
-Every kernel here is written from scratch.
+## Key results
 
-## Progress
+| Kernel | Metric | Result | Reference |
+|---|---|---|---|
+| Vector add (ch. 2) | effective DRAM bandwidth | **347.6 GB/s** | **90.5 %** of the 384 GB/s theoretical peak |
+| RGB → grayscale (ch. 3) | effective DRAM bandwidth | **333.2 GB/s** | **86.8 %** of peak |
+| Best hand-written SGEMM (ch. 6, tile 16, coarsening ×4) | FP32 throughput, n = 4096 | **1,500 GFLOP/s** | **1.95×** the naive kernel, **14 %** of cuBLAS |
+| cuBLAS SGEMM (reference) | FP32 throughput, n = 4096 | 10,628 GFLOP/s | FMA pipe active 69 % (Nsight Compute) |
 
-| Chapter | Topic | Key concept(s) | Kernel(s) | Status |
-|---|---|---|---|---|
-| 2 | Heterogeneous data parallel computing | `parallel computing`, `kernels`, `CUDA` | `vecadd` | ✅ |
-| 3 | Multidimensional grids and data | `multidimensional threading` | `matmul`, `color2gray` | ✅ |
-| 4 | Compute architecture and scheduling | `modern GPU architecture`, `thread scheduling`, `occupancy`, `SIMD efficiency` | — | ✅ |
-| 5 | Memory architecture and data locality | `memory access efficiency`, `performance metrics`, `tiling` | `matmul_tiling` | ✅ |
-| 6 | Performance considerations | `DRAM architecture`,`coarsening`,`coalescing`,`profiling` | `matmul_coarsening` | ✅ |
+- The two memory-bound kernels run close to the DRAM roofline: little is left to gain there.
+- The SGEMM progression (naive → shared-memory tiling → coarsening) lands **within one point of an independent reference** ([Boehm's worklog](https://siboehm.com/articles/22/CUDA-MMM), RTX A6000) for the first two steps, and the README explains **why the third step gains 1.05× here and 2.85× there**: PMPP coarsening reduces global-memory traffic, while the bottleneck is shared-memory traffic per FMA.
+- cuBLAS was identified with Nsight Compute as a CUTLASS **FP32 SIMT** kernel (no Tensor Cores), so the comparison is fair.
 
-## Results: SGEMM (FP32)
+All kernels pass correctness tests on rectangular and non-tile-multiple shapes and `compute-sanitizer` (memcheck, racecheck) before being timed.
 
-C = A · B, row-major, square M = N = K = n. Every kernel passes the same correctness test (9 shapes including rectangular and non-tile-multiple ones, FP64 CPU reference, relative tolerance K·ε) and `compute-sanitizer` memcheck / racecheck with 0 errors before being timed.
+## Contents
+
+1. [Memory-bound kernels](#memory-bound-kernels)
+2. [SGEMM: from naive to cuBLAS](#sgemm-from-naive-to-cublas)
+3. [Methodology](#methodology)
+4. [Reproduce](#reproduce)
+5. [Open questions and next steps](#open-questions-and-next-steps)
+6. [Repository layout](#repository-layout)
+7. [Chapter notes and exercises](#chapter-notes-and-exercises)
+
+## Memory-bound kernels
+
+Both kernels do a few operations per element, so their roofline limit is DRAM bandwidth. Sizes are chosen far above the 32 MiB L2 cache so that DRAM, not L2, is measured.
+
+| Kernel | Size | Bytes moved | Median time | Effective bandwidth | % of theoretical peak |
+|---|---|---|---|---|---|
+| `vecadd` | 2²⁶ floats (256 MiB per array) | 3 × 256 MiB | 2.317 ms | 347.6 GB/s | 90.5 % |
+| `color2gray` | 4096 × 4096 RGB pixels | 192 MiB read + 64 MiB written | 0.806 ms | 333.2 GB/s | 86.8 % |
+
+Effective bandwidth = (bytes read + bytes written) / median kernel time. Theoretical peak: 128-bit bus × 24 Gbps GDDR7 = 384 GB/s.
+
+`color2gray` used FP64 by accident (`0.21 * r` with `double` literals); switching to `0.21f` removed the FP64 instructions and lowered register use from 15 to 12. Its slightly lower bandwidth than `vecadd` is consistent with the strided RGB reads (12-byte stride between threads); not yet profiled.
+
+## SGEMM: from naive to cuBLAS
+
+C = A · B, FP32, row-major, square M = N = K = n.
 
 ![SGEMM throughput vs size](results/matmul_gflops.png)
 
 | Kernel | n = 512 | n = 1024 | n = 2048 | n = 4096 |
 |---|---|---|---|---|
 | Naive (ch. 3) | 998 GFLOP/s (16 %) | 1,065 (12 %) | 1,084 (11 %) | 769 (7 %) |
-| Tiled, 16×16 (ch. 5) | 1,364 (22 %) | 1,463 (17 %) | 1,482 (14 %) | 1,425 (13 %) |
-| Tiled, 32×32 (ch. 5) | 1,344 (22 %) | 1,406 (16 %) | 1,428 (14 %) | 1,263 (12 %) |
+| Tiled 16×16 (ch. 5) | 1,364 (22 %) | 1,463 (17 %) | 1,482 (14 %) | 1,425 (13 %) |
+| Tiled 32×32 (ch. 5) | 1,344 (22 %) | 1,406 (16 %) | 1,428 (14 %) | 1,263 (12 %) |
 | **Tiled 16×16 + coarsening ×4 (ch. 6)** | 1,423 (23 %) | 1,533 (18 %) | **1,580 (15 %)** | **1,500 (14 %)** |
 | cuBLAS SGEMM | 6,191 | 8,595 | 10,291 | 10,628 |
 
-Median of 30 runs, GFLOP/s = 2·M·N·K / time. Percentages are relative to cuBLAS at the same size. Raw data: [`results/sweep_matmul.csv`](results/sweep_matmul.csv), environment and clock check: [`results/env_matmul.txt`](results/env_matmul.txt).
+Median of 30 runs; GFLOP/s = 2·M·N·K / time; percentages relative to cuBLAS at the same size. Full sweep (10 configurations × 4 sizes): [`results/sweep_matmul.csv`](results/sweep_matmul.csv).
 
-**Best hand-written kernel: 1.95× the naive kernel and 14 % of cuBLAS at n = 4096.** This is where these techniques are expected to land: in [Simon Boehm's SGEMM worklog](https://siboehm.com/articles/22/CUDA-MMM) (RTX A6000, n = 4092), the coalesced naive kernel reaches 8.5 % of cuBLAS and 32×32 shared-memory tiling 12.8 %; here the naive kernel (already coalesced) reaches 7.2 % and 32×32 tiling 11.9 %. The PMPP chapter 5-6 techniques are not the ones that close the gap.
+### Findings
 
-### What the measurements show
+![Tile size x coarsening factor](results/matmul_configs.png)
 
-![Tile size x coarsening](results/matmul_configs.png)
+1. **Tile 16 beats tile 32** (+4 % at n = 2048, +13 % at n = 4096) although tile 32 halves global-memory traffic. A 1024-thread block is the only block that fits on an SM (1536 threads max), so occupancy is capped at 67 % and all 32 warps stall together at each `__syncthreads()`. Global traffic is not the limiter.
+2. **Coarsening helps little**: +5 % (×2) and +7 % (×4) at n = 2048. Explained below.
+3. **Wave quantization**: tile 32 × coarsening 4 at n = 512 launches 64 blocks on 26 SMs at 1 block/SM, i.e. 3 waves with the last one 12/26 full. Predicted efficiency 64/78 = 82 %, measured 86 %.
+4. **The naive kernel loses 29 % from n = 2048 to 4096**, when one matrix (64 MiB) no longer fits in the 32 MiB L2. cuBLAS is unaffected.
+5. **Coarsening ×1 matches the plain tiled kernel** (1,474 vs 1,482 GFLOP/s): no overhead, and a check that the measurements are reproducible.
 
-- **Tile 16 beats tile 32**, by 4 % at n = 2048 and 13 % at n = 4096, although tile 32 halves global-memory traffic. With 1024-thread blocks only one block fits on an SM (1536 threads max), so occupancy is capped at 67 %, and all 32 warps of that block wait together at every `__syncthreads()`. Global traffic is therefore not the limiter. *(Hypothesis: exposed memory latency at the barriers; to be confirmed with Nsight Compute stall reasons.)*
-- **Thread coarsening helps a little**: +5 % (×2) and +7 % (×4) at n = 2048 with tile 16. The reason is explained in the comparison with Boehm's kernels below.
-- **Coarsening ×1 gives the same result as the plain tiled kernel** (1,474 vs 1,482 GFLOP/s at n = 2048): no overhead, and a check that the harness is reproducible.
-- **Wave quantization is visible**: tile 32 × coarsening 4 at n = 512 launches 64 blocks of 1024 threads on 26 SMs (1 block/SM), i.e. 3 waves with the last one 12/26 full. Expected efficiency 64/78 = 82 %; measured 86 % of the coarsening ×2 result.
-- **The naive kernel loses 29 % from n = 2048 to 4096**, when each matrix (64 MiB) no longer fits in the 32 MiB L2 and its redundant reads go to DRAM. cuBLAS is unaffected.
+### Why coarsening gains 1.05× here and 2.85× in Boehm's worklog
 
-### Comparison with Boehm's kernels: why coarsening gains 1.05× here and 2.85× there
-
-Boehm's worklog applies the same ideas to SGEMM, which makes it a useful reference to explain the gap.
-
-| Step | Boehm (A6000, n = 4092) | This repo (RTX 5060 Laptop, n = 4096) |
+| Step | Boehm (A6000, n = 4092) | This repo (n = 4096) |
 |---|---|---|
-| Naive, coalesced | kernel 2: 8.5 % of cuBLAS | ch. 3: 7.2 % |
-| 32×32 shared-memory tiling | kernel 3: 12.8 % | ch. 5: 11.9 % |
-| Several outputs per thread | kernel 4 (1D blocktiling, 8 outputs): **36.5 %, ×2.85** | ch. 6 (coarsening ×4, tile 16): **14.1 %, ×1.05 vs tile 16** |
+| Naive, coalesced | 8.5 % of cuBLAS | 7.2 % |
+| 32×32 shared-memory tiling | 12.8 % | 11.9 % |
+| Several outputs per thread | 36.5 % (1D blocktiling, 8 outputs), **×2.85** | 14.1 % (coarsening ×4), **×1.05** vs tile 16 |
 
-The first two steps land within about one point of Boehm's results on a different architecture. The third one does not, although both kernels compute several outputs per thread. The difference is **what gets reused from registers**.
-
-Memory accesses per output element (Boehm's counts for his kernels, same method applied to the ch. 6 kernel):
+Both kernels compute several outputs per thread; the difference is **what is reused from registers**.
 
 | Kernel | Global loads per output | Shared-memory loads per output |
 |---|---|---|
 | Boehm kernel 3 (32×32 tiles) | K/16 | 2K |
 | Boehm kernel 4 (1D, 8 outputs/thread) | K/32 | **9K/8** |
-| ch. 6, tile 16, coarsening ×4 | ≈ K/13 | **2K** (unchanged) |
+| ch. 6 (tile 16, coarsening ×4) | ≈ K/13 | **2K** |
 
-PMPP coarsening (ch. 6) reuses the **A tile across several output columns**: it cuts global traffic and redundant tile loads. But the loop over the coarsened outputs is the *outer* loop, with a `__syncthreads()` and a new B tile for each output, so every `As[ty][k]` is read again from shared memory for each output:
+PMPP coarsening reuses the A tile across output columns, which cuts global traffic. But the output loop is the *outer* loop, with a barrier and a new B tile per output, so every `As[ty][k]` is read again from shared memory:
 
 ```cpp
 for (int c = 0; c < COARSE_FACTOR; c++) {      // outer: one B tile per output
@@ -75,134 +95,105 @@ for (int c = 0; c < COARSE_FACTOR; c++) {      // outer: one B tile per output
 }
 ```
 
-Boehm's kernel 4 puts the loop over K *outside* and the loop over outputs *inside*: one value is read from shared memory into a register and reused for 8 FMAs, so shared-memory loads per output drop from 2K to 9K/8. Since the tiled kernels are limited by the shared-memory pipeline (MIO throttle stalls in Boehm's profile; to be confirmed here with Nsight Compute), only the second kind of reuse moves the ceiling.
+Boehm puts the K loop outside: one shared-memory value goes to a register and feeds 8 FMAs. **The chapter 5-6 techniques reduce global-memory traffic, which is not the bottleneck once data sits in L1/L2 and shared memory; closing the gap requires reducing shared-memory traffic per FMA, i.e. register tiling.**
 
-**In short:** the PMPP chapter 5-6 kernels reduce *global*-memory traffic, which was not the bottleneck once the data sits in L1/L2 and shared memory. Closing the gap with cuBLAS requires reducing *shared-memory* traffic per FMA, i.e. register tiling.
+### What cuBLAS does differently
 
-### Why cuBLAS is ~7× faster
+Nsight Compute shows that cuBLAS runs `cutlass_80_simt_sgemm_128x64_8x5_nn_align1` at n = 4096: a plain FP32 CUTLASS kernel with
 
-Nsight Compute shows that cuBLAS runs `cutlass_80_simt_sgemm_128x64_8x5_nn_align1` at n = 4096: a **plain FP32 (SIMT, no Tensor Core)** CUTLASS kernel, so the comparison is fair. Its name gives the missing techniques:
+- **register tiling**: a 128×64 output tile per 128-thread block, i.e. 64 outputs per thread (vs 1 to 4 here);
+- **a 5-stage software pipeline**: the next K-tiles load while the current one is computed.
 
-- **register tiling**: a 128×64 output tile per 128-thread block, i.e. 64 outputs per thread kept in registers (vs 1 to 4 here), which turns two shared-memory loads per FMA into a small fraction of a load per FMA;
-- **a 5-stage software pipeline**: the next K-tiles are loaded while the current one is computed.
+Its FMA pipe is active 69 % of the time, at an SM clock of 2.69 GHz measured during the kernel (FP32 peak at that clock: 128 lanes × 26 SMs × 2 × 2.69 GHz ≈ 17.9 TFLOP/s).
 
-Its FMA pipe is active **69 %** of the time (`sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active`), at an SM clock of **2.69 GHz** measured during the kernel. At that clock the FP32 peak is 128 × 26 × 2 × 2.69 ≈ 17.9 TFLOP/s: cuBLAS reaches ~59 % of it in the sustained benchmark, the best hand-written kernel ~8 %.
+## Methodology
 
-**Next step (not done here):** reorder the ch. 6 loops so that the K loop is outside the output loop (1D register tiling), then 2D register tiling and vectorized `float4` loads. In Boehm's worklog these steps reach 36.5 %, 68.7 % (8×8 outputs per thread) and 78.4 % of cuBLAS.
+**Correctness before speed.** Each SGEMM variant, including cuBLAS, goes through the same test: 9 shapes (degenerate, thin, rectangular, non-multiples of the tile size, 1024³), FP64 CPU reference, relative tolerance K·ε derived from the floating-point error bound of a dot product of non-negative terms, output pre-filled with NaN to catch unwritten elements. Then `compute-sanitizer` memcheck and racecheck. The sweep script refuses to benchmark a configuration whose test fails.
 
-### Method notes
+**Timing** ([`utils/bench.h`](utils/bench.h)): kernel time only, CUDA events around each launch, transfers measured separately. Warmup of ≥ 300 ms (a laptop GPU idles in a low-power state), then 30 timed runs; the **median** is reported, min / max / stddev are kept in the CSV.
 
-- **Kernel time only**: CUDA events around each launch, transfers measured separately. Warmup of ≥ 300 ms so the laptop GPU leaves its idle state, then 30 timed runs; the **median** is reported, with min / max / stddev in the CSV.
-- **Power mode matters on a laptop.** Measured SM clock under an FP32 FMA load: 1.56 GHz in Lenovo "Quiet" mode, 2.75 GHz in "Balanced" / "Performance". All results above: **Performance mode, on AC power**. The clock is measured in a kernel with `clock64()` / `%globaltimer` before and after each sweep (`utils/clock_probe`), and during the cuBLAS kernel with Nsight Compute.
-- **Remaining variability**: tile-16 runs at n = 4096 show a 4-6 % stddev (min/max up to 1.2×) while tile 32 stays below 0.2 %. The fastest configurations run at the 80 W power limit, and the clock likely oscillates; the median is robust to this.
-- `ncu` is run with `--clock-control none`: by default it locks the GPU to its base clock.
+**Clock and power on a laptop.** The SM clock is measured inside a kernel (`clock64()` cycles / `%globaltimer` ns, [`utils/clock_probe.cu`](utils/clock_probe.cu)) before and after each sweep, and with Nsight Compute during the cuBLAS kernel (`--clock-control none`, since `ncu` locks the base clock by default). The power mode changes everything: 1.56 GHz in Lenovo "Quiet" mode, 2.75 GHz in "Balanced" / "Performance". All results: **Performance mode, on AC power**.
 
-## Repository structure
+**Known variability.** Tile-16 SGEMM at n = 4096 shows a 4-6 % stddev while tile 32 stays below 0.2 %. The fastest configurations run at the 80 W power limit; the median is robust to the resulting clock oscillations.
 
-```
-pmpp-cuda-kernels/
-├── .clang-format
-├── .gitignore
-├── README.md
-├── common.mk                   # shared build settings (nvcc flags, -arch, EXTRA defines, header tracking)
-├── utils/
-│   ├── Makefile                # `make query`: GPU specs, `make probe`: measured SM clock
-│   ├── cuda_check.h            # CUDA_CHECK error-handling macro
-│   ├── bench.h                 # statistical timing harness (warmup, 30 runs, median/min/max/stddev)
-│   ├── clock_probe.cu          # real SM clock (clock64 / globaltimer) and practical FP32 peak
-│   ├── device_query.h
-│   ├── device_query.cu         # print_device_props(): limits, memory, theoretical peaks
-│   └── device_query_main.cu
-├── ch2/
-│   └── vecadd/                 # vector addition (memory-bound, effective bandwidth)
-│       ├── Makefile
-│       ├── vecadd.cuh
-│       ├── vecadd.cu           # kernel + GPU wrapper + CPU reference
-│       ├── test_vecadd.cu      # GPU vs CPU correctness tests
-│       └── bench_vecadd.cu     # timing (GB/s)
-├── ch3/
-│   ├── color2gray/             # RGB to grayscale (memory-bound)
-│   │   ├── Makefile
-│   │   ├── color2gray.cuh
-│   │   ├── color2gray.cu
-│   │   ├── test_color2gray.cu
-│   │   └── bench_color2gray.cu
-│   └── matmul/                 # naive SGEMM (M x N x K)
-│       ├── Makefile
-│       ├── matmul.cuh
-│       ├── matmul.cu
-│       ├── test_matmul.cu      # shared by all SGEMM folders: 9 shapes, FP64 reference
-│       └── bench_matmul.cu     # shared by all SGEMM folders: GFLOP/s, CSV output
-├── ch4/
-│   └── README.md               # exercises: warps, divergence, occupancy
-├── ch5/
-│   ├── README.md               # exercises: tiling, roofline, occupancy
-│   └── matmul_tiling/          # shared-memory tiled SGEMM (TILE_WIDTH set at compile time)
-│       ├── Makefile
-│       ├── matmul.cuh
-│       ├── matmul.cu
-│       ├── test_matmul.cu
-│       └── bench_matmul.cu
-├── ch6/
-│   └── matmul_coarsening/      # tiling + thread coarsening (TILE_WIDTH, COARSE_FACTOR)
-│       ├── Makefile
-│       ├── matmul.cuh
-│       ├── matmul.cu
-│       ├── test_matmul.cu
-│       └── bench_matmul.cu
-├── cublas/                     # cuBLAS SGEMM reference, same interface as the hand-written kernels
-│   ├── Makefile
-│   ├── matmul.cuh
-│   ├── matmul.cu
-│   ├── test_matmul.cu
-│   └── bench_matmul.cu
-├── scripts/
-│   ├── sweep_matmul.sh         # builds, tests and benchmarks every SGEMM variant over sizes
-│   └── plot_matmul.py          # README tables and figures from the sweep CSV
-└── results/                    # raw data behind the README numbers (committed)
-    ├── sweep_matmul.csv
-    ├── env_matmul.txt          # date, commit, toolkit, driver, measured SM clock before/after
-    ├── build.log               # compiler output (registers, shared memory per variant)
-    ├── matmul_table.md
-    ├── matmul_gflops.png
-    └── matmul_configs.png
+**Hardware and software.** NVIDIA GeForce RTX 5060 Laptop GPU (Blackwell, cc 12.0, 26 SMs, 8 GB GDDR7, 32 MiB L2, 80 W). Windows + WSL2 (Ubuntu), CUDA 13.3, driver 592.15, Nsight Compute 2026.2, Nsight Systems 2026.1.
 
-```
+## Reproduce
 
-One folder per kernel. Each follows the same layout: `xxx.cu` (kernel, launch function, GPU wrapper), `test_xxx.cu` (correctness vs CPU), `bench_xxx.cu` (timing), and a `Makefile` with `test` / `bench` / `clean` targets. Tile size and coarsening factor are compile-time defines (`make EXTRA="-DTILE_WIDTH=16"`).
-
-## Hardware & environment
-
-| | |
-|---|---|
-| **GPU** | NVIDIA GeForce RTX 5060 Laptop GPU (Blackwell, cc 12.0, 26 SMs, 8 GB GDDR7, 80 W) |
-| **Software** | Windows + WSL2 (Ubuntu), CUDA toolkit 13.3, driver 592.15 |
-| **Profiling** | Nsight Compute 2026.2, Nsight Systems 2026.1, compute-sanitizer |
-| **Earlier work** | Google Colab, NVIDIA T4 (Turing, cc 7.5) |
-
-## Build & run
-
-Requires a CUDA toolkit >= 12.8 (Blackwell `sm_120` support). Builds for the local GPU (`-arch=native`); override with `make ARCH=sm_XX`.
+Requires a CUDA toolkit ≥ 12.8 (sm_120 support), GNU Make, and Python 3 with pandas and matplotlib for the figures. Builds for the local GPU (`-arch=native`); override with `make ARCH=sm_XX`.
 
 ```bash
 git clone https://github.com/leedouardpro-code/pmpp-cuda-kernels.git
-cd pmpp-cuda-kernels/utils && make query     # print GPU specs
-cd ../ch5/matmul_tiling
-make test     # build, then run correctness tests (GPU vs CPU)
-make bench    # build, then run the benchmark
-make clean
+cd pmpp-cuda-kernels
+
+make -C utils query probe                # GPU specs, measured SM clock
+make -C ch5/matmul_tiling test bench     # one kernel: correctness tests, then benchmark
+make -C ch5/matmul_tiling EXTRA="-DTILE_WIDTH=16" clean test bench   # another tile size
+
+scripts/sweep_matmul.sh                  # all SGEMM variants x sizes -> results/sweep_matmul.csv
+python3 scripts/plot_matmul.py           # tables and figures in results/
 ```
 
-## Conventions
+On a laptop, plug in the charger and select the highest performance mode first; [`results/env_matmul.txt`](results/env_matmul.txt) records the clock measured before and after the sweep.
 
-- `_h` / `_d` suffixes for host/device pointers (book convention)
-- Every CUDA API call wrapped in `CUDA_CHECK(...)`
-- Kernel launches followed by `cudaGetLastError()`
-- Commit messages: `chXX: <what changed>`
+## Open questions and next steps
+
+Hypotheses stated above that are **not yet confirmed by profiling**, and the planned work:
+
+- [ ] Profile the hand-written SGEMM kernels with Nsight Compute: is the tiled kernel limited by the shared-memory pipeline (*MIO throttle* stalls, as in Boehm's profile)? Does tile 32 lose time at barriers?
+- [ ] Parallel reduction (PMPP ch. 10), from the naive version to warp shuffles, compared with CUB `DeviceReduce`.
+- [ ] Roofline plot of all kernels from Nsight Compute counters.
+- [ ] SGEMM: move the K loop outside the output loop (1D register tiling), then 2D register tiling and `float4` loads (36.5 % → 78.4 % of cuBLAS in Boehm's worklog).
+
+## Repository layout
+
+One folder per kernel, same layout everywhere: `xxx.cu` (kernel, launch function, GPU wrapper), `test_xxx.cu` (correctness vs CPU), `bench_xxx.cu` (timing), and a `Makefile` with `test` / `bench` / `clean` targets.
+
+<details>
+<summary>Full tree</summary>
+
+```
+pmpp-cuda-kernels/
+├── common.mk                   # shared build settings (flags, EXTRA defines, header tracking)
+├── utils/
+│   ├── bench.h                 # statistical timing harness
+│   ├── clock_probe.cu          # measured SM clock and practical FP32 peak
+│   ├── cuda_check.h            # CUDA_CHECK error-handling macro
+│   ├── device_query.{h,cu}     # device limits and theoretical peaks
+│   ├── device_query_main.cu
+│   └── Makefile                # `make query`, `make probe`
+├── ch2/vecadd/                 # vector addition (memory-bound)
+├── ch3/color2gray/             # RGB to grayscale (memory-bound)
+├── ch3/matmul/                 # naive SGEMM; test_matmul.cu / bench_matmul.cu shared by all SGEMM folders
+├── ch4/README.md               # exercises: warps, divergence, occupancy
+├── ch5/README.md               # exercises: tiling, roofline, occupancy
+├── ch5/matmul_tiling/          # shared-memory tiled SGEMM (TILE_WIDTH at compile time)
+├── ch6/matmul_coarsening/      # tiling + thread coarsening (TILE_WIDTH, COARSE_FACTOR)
+├── cublas/                     # cuBLAS SGEMM reference behind the same interface
+├── scripts/
+│   ├── sweep_matmul.sh         # build, test and benchmark every SGEMM variant
+│   └── plot_matmul.py          # tables and figures from the sweep CSV
+└── results/                    # raw data behind the numbers above (CSV, environment, build log, figures)
+```
+
+</details>
+
+## Chapter notes and exercises
+
+| Chapter | Topic | Code | Notes |
+|---|---|---|---|
+| 2 | Heterogeneous data parallel computing | [`vecadd`](ch2/vecadd) | |
+| 3 | Multidimensional grids and data | [`color2gray`](ch3/color2gray), [`matmul`](ch3/matmul) | |
+| 4 | Compute architecture and scheduling | | [exercises](ch4/README.md) |
+| 5 | Memory architecture and data locality | [`matmul_tiling`](ch5/matmul_tiling) | [exercises](ch5/README.md) |
+| 6 | Performance considerations | [`matmul_coarsening`](ch6/matmul_coarsening) | |
+
+Conventions: `_h` / `_d` suffixes for host / device pointers, every CUDA API call wrapped in `CUDA_CHECK`, `cudaGetLastError()` after each launch. All kernels are hand-written; `cublas/` is the vendor reference.
 
 ## References
 
-- Hwu, W-m., Kirk, D., El Hajj, I. — *Programming Massively Parallel Processors*, 4th ed., 2023
+- W. Hwu, D. Kirk, I. El Hajj, *Programming Massively Parallel Processors*, 4th ed., 2023
+- S. Boehm, [How to Optimize a CUDA Matmul Kernel for cuBLAS-like Performance: a Worklog](https://siboehm.com/articles/22/CUDA-MMM), 2022
+- NVIDIA, [CUDA C++ Programming Guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/), [CUDA C++ Best Practices Guide](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/), [Nsight Compute Kernel Profiling Guide](https://docs.nvidia.com/nsight-compute/ProfilingGuide/)
+- N. J. Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed., SIAM, 2002 (error bound used for the test tolerance)
 - [GPU MODE lectures](https://github.com/gpu-mode/lectures)
-- [CUDA C++ Programming Guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/)
-- [How to Optimize a CUDA Matmul Kernel for cuBLAS-like Performance: a Worklog](https://siboehm.com/articles/22/CUDA-MMM)
