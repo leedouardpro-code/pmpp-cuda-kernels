@@ -1,0 +1,198 @@
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/utils'
+make: 'clock_probe' is up to date.
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/utils'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch3/matmul'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch3/matmul'
+=== ch3/matmul  ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch3/matmul'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z6MatmulPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z6MatmulPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, used 0 barriers
+ptxas info    : Compile time = 5.125 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch3/matmul'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch3/matmul'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch3/matmul'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+=== ch5/matmul_tiling -DTILE_WIDTH=16 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z13Matmul_tilingPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z13Matmul_tilingPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 36 registers, used 1 barriers, 2048 bytes smem
+ptxas info    : Compile time = 4.577 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+=== ch5/matmul_tiling -DTILE_WIDTH=32 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z13Matmul_tilingPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z13Matmul_tilingPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, used 1 barriers, 8192 bytes smem
+ptxas info    : Compile time = 5.103 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch5/matmul_tiling'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+=== ch6/matmul_coarsening -DTILE_WIDTH=16 -DCOARSE_FACTOR=1 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=1 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 36 registers, used 1 barriers, 2048 bytes smem
+ptxas info    : Compile time = 4.162 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=1 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=1 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+=== ch6/matmul_coarsening -DTILE_WIDTH=16 -DCOARSE_FACTOR=2 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=2 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 2048 bytes smem
+ptxas info    : Compile time = 8.731 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=2 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=2 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+=== ch6/matmul_coarsening -DTILE_WIDTH=16 -DCOARSE_FACTOR=4 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=4 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 2048 bytes smem
+ptxas info    : Compile time = 13.576 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=4 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=4 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+=== ch6/matmul_coarsening -DTILE_WIDTH=32 -DCOARSE_FACTOR=1 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=1 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 38 registers, used 1 barriers, 8192 bytes smem
+ptxas info    : Compile time = 5.331 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=1 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=1 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+=== ch6/matmul_coarsening -DTILE_WIDTH=32 -DCOARSE_FACTOR=2 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=2 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 8192 bytes smem
+ptxas info    : Compile time = 12.533 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=2 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=2 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+=== ch6/matmul_coarsening -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 8192 bytes smem
+ptxas info    : Compile time = 22.241 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/cublas'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/cublas'
+=== cublas  ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/cublas'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../utils --ptxas-options=-v  -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../utils --ptxas-options=-v  test_matmul.cu matmul.o -o test_matmul -lcublas
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../utils --ptxas-options=-v  bench_matmul.cu matmul.o -o bench_matmul -lcublas
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/cublas'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/cublas'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/cublas'
