@@ -3,7 +3,7 @@
 **Hand-written CUDA kernels from *Programming Massively Parallel Processors*, tested, measured and compared with NVIDIA's libraries on an RTX 5060 Laptop GPU.**
 
 > **Summary.** *Programming Massively Parallel Processors* (PMPP, 4th ed.) teaches GPU programming through a sequence of kernels and optimization techniques. This repository implements those kernels from scratch and asks a question the book only partly answers: *how much does each technique actually gain on a modern GPU, and why?* Every kernel is first checked for correctness, then timed with a statistical benchmark, compared with the hardware limits and with NVIDIA's own library (cuBLAS), and the results are explained with the hardware model and the Nsight Compute profiler.
-> The two memory-bound kernels reach **87-90 % of the theoretical DRAM bandwidth**. For matrix multiplication, the techniques of chapters 5-6 bring a **1.95× speedup** over the naive kernel but stay at **14 % of cuBLAS**, in line with an independent published study. The analysis shows why: these techniques reduce traffic to off-chip memory, whereas the bottleneck has moved to on-chip shared memory.
+> The two memory-bound kernels reach **87-90 % of the theoretical DRAM bandwidth**. For matrix multiplication, the techniques of chapters 5-6 bring a **1.95× speedup** over the naive kernel but stay at **14 % of cuBLAS**, in line with an independent published study. The analysis, confirmed with profiler counters, shows why: these techniques reduce traffic to off-chip memory, whereas the bottleneck has moved to the on-chip load/store pipeline that feeds shared memory.
 
 ## Contents
 
@@ -153,17 +153,44 @@ The best hand-written kernel is **1.95× faster than the naive one** at n = 4096
 
 ![Tile size x coarsening factor at n = 2048](results/matmul_configs.png)
 
-**Tiling helps, but much less than the reduction in memory traffic would suggest.** A 16×16 tile divides global-memory traffic by 16, yet the speedup over the naive kernel is only 1.37× at n = 2048. The naive kernel was therefore not limited by DRAM: its redundant reads were already served by the L1 and L2 caches. The exception confirms the rule: at n = 4096, a single matrix (64 MiB) no longer fits in the 32 MiB L2 cache, and the naive kernel loses 29 % of its throughput, while the tiled kernels lose 4-12 % and cuBLAS nothing.
+**Tiling helps, but much less than the reduction in memory traffic would suggest.** A 16×16 tile divides global-memory traffic by 16, yet the speedup over the naive kernel is only 1.37× at n = 2048. The naive kernel was therefore not limited by DRAM: its redundant reads were already served by the caches (Nsight Compute measures a **95 % L1 hit rate** for it, [section 5.4](#54-what-the-profiler-shows)). The exception confirms the rule: at n = 4096, a single matrix (64 MiB) no longer fits in the 32 MiB L2 cache, and the naive kernel loses 29 % of its throughput, while the tiled kernels lose 4-12 % and cuBLAS nothing.
 
-**A larger tile is slower.** A 32×32 tile halves global traffic again compared with 16×16, but is 4 % slower at n = 2048 and 13 % slower at n = 4096. The reason lies in occupancy. A 32×32 tile requires blocks of 1,024 threads, and only one such block fits on an SM (limit: 1,536 threads), so only 32 of the 48 warp slots are used (67 % occupancy), and all of them wait at the same synchronization barriers (`__syncthreads()`). With 16×16 tiles, six independent blocks of 256 threads share the SM, and one block can compute while another waits for memory. This again shows that global traffic is not the limiting factor. *(The barrier-stall explanation is a hypothesis to be confirmed with Nsight Compute.)*
+**A larger tile is slower.** A 32×32 tile halves global traffic again compared with 16×16, but is 4 % slower at n = 2048 and 13 % slower at n = 4096. Both tile sizes perform exactly the same amount of shared-memory work, so the difference must come from how well that work is overlapped. A 32×32 tile requires blocks of 1,024 threads, and only one such block fits on an SM (limit: 1,536 threads), so only 32 of the 48 warp slots are used (67 % occupancy, confirmed by the profiler). With 16×16 tiles, six independent blocks of 256 threads share the SM (100 % occupancy), and the profiler shows that they keep the load/store pipeline busy 97 % of the time, against 76 % for the 32×32 tile. This again shows that global traffic is not the limiting factor. *(Before profiling, the expected cause was that the 32 warps of the single block stall together at the `__syncthreads()` barriers; the profiler does not support it: barrier stalls are lower with the 32×32 tile. The exact mechanism of the lower pipeline utilization remains open, see section 6.)*
 
-**Thread coarsening gives a small gain:** +5 % with factor 2 and +7 % with factor 4 at n = 2048, for 16×16 tiles. [Section 5.4](#54-why-coarsening-gains-little-comparison-with-a-published-study) explains why the gain is small. As a sanity check, coarsening with factor 1 reproduces the plain tiled kernel (1,474 vs 1,482 GFLOP/s), so the coarsened code adds no overhead and the measurements are consistent.
+**Thread coarsening gives a small gain:** +5 % with factor 2 and +7 % with factor 4 at n = 2048, for 16×16 tiles. Sections [5.4](#54-what-the-profiler-shows) and [5.5](#55-why-coarsening-gains-little-comparison-with-a-published-study) explain why the gain is small. As a sanity check, coarsening with factor 1 reproduces the plain tiled kernel (1,474 vs 1,482 GFLOP/s), so the coarsened code adds no overhead and the measurements are consistent.
 
 **Small problems expose wave quantization.** Blocks are distributed to SMs in "waves". With 32×32 tiles and coarsening ×4 at n = 512, the grid has 64 blocks for 26 SMs holding one block each: 3 waves, the last one using 12 of the 26 SMs. The expected efficiency is 64/78 = 82 %; the measured throughput is 86 % of the same kernel with coarsening ×2, whose 128 blocks fill 5 waves almost completely (128 of 130 slots).
 
-In summary, the measurements show that DRAM traffic was not the bottleneck of these kernels, which explains why techniques designed to reduce it bring limited gains. The next subsection identifies what the bottleneck is, using a published study as a point of comparison.
+In summary, the measurements show that DRAM traffic was not the bottleneck of these kernels, which explains why techniques designed to reduce it bring limited gains. The next subsection uses the profiler to identify what the bottleneck is.
 
-### 5.4 Why coarsening gains little: comparison with a published study
+### 5.4 What the profiler shows
+
+Timings show *that* a kernel is slow; hardware counters show *where* the time goes. Each kernel was profiled with Nsight Compute at n = 4096 (one launch after warmup, real clock, full metric set; script [`scripts/profile_matmul.sh`](scripts/profile_matmul.sh), summary [`results/ncu_matmul.md`](results/ncu_matmul.md)). The table keeps the metrics needed for the argument; how to read them follows.
+
+| Metric (n = 4096) | Naive | Tiled 16 | Tiled 32 | Tiled 16 + coarsening ×4 | cuBLAS |
+|---|---|---|---|---|---|
+| Kernel duration (ms) | 189.7 | 95.3 | 109.3 | 90.2 | 12.2 |
+| **FMA pipe active** (%) | 8.7 | 10.2 | 7.9 | 9.7 | **69.3** |
+| **Load/store (LSU) pipe active** (%) | 63.7 | **96.7** | 76.4 | **95.7** | 58.7 |
+| **Shared-memory load wavefronts** (millions) | 0 | 3,221 | 3,221 | 3,221 | **269** |
+| Shared-memory bank conflicts (millions) | 0 | 0.1 | 0.0 | 0.0 | 0.1 |
+| L1 hit rate (%) | 95.0 | 0.0 | 0.0 | 0.2 | 0.0 |
+| Achieved occupancy (%) | 66.7 | 100.0 | 66.7 | 98.5 | 24.8 |
+| Instructions executed (millions) | 10,489 | 7,807 | 6,330 | 6,384 | 2,614 |
+| Main stall reasons | global-memory queue full, waiting for global loads | waiting for global loads, shared-memory queue full | shared-memory queue full | waiting for global loads, shared-memory queue full | almost none |
+
+*How to read it.* A GPU instruction is executed by a *pipe*: the FMA pipe does the multiply-adds, the LSU (load/store unit) pipe issues every memory access, including shared-memory loads. A *wavefront* is one pass of the shared-memory hardware; it counts the real shared-memory work. *Stall reasons* tell what warps were waiting for when they could not issue an instruction ("shared-memory queue full" is the profiler's *MIO throttle*, "waiting for global loads" its *long scoreboard*).
+
+Four observations follow:
+
+1. **The tiled kernels are limited by the load/store pipe, not by arithmetic or DRAM.** Their LSU pipe is busy 96-97 % of the time while the FMA pipe is busy only 10 %: the GPU spends its time moving operands, not computing. The two main stall reasons (shared-memory queue full, waiting for global loads) say the same thing.
+2. **Neither the tile size nor coarsening changes the shared-memory work.** The three tiled kernels execute *exactly* the same number of shared-memory wavefronts (3,221 million), because all of them read two values from shared memory per multiply-add. Coarsening only removes other instructions (−18 %: fewer global loads of A tiles and fewer index computations), hence its small gain. This is the direct measurement behind the analysis of section 5.5.
+3. **Bank conflicts are not the problem**: they are negligible in every kernel.
+4. **The naive kernel is served by the L1 cache** (95 % hit rate): its redundant global reads rarely reach DRAM, which is why tiling, designed to reduce DRAM traffic, gains only 1.4-1.9×.
+
+The profiler thus confirms the explanation suggested by the timings, and quantifies it. The next subsection compares these kernels with a published study to show what a better kernel changes.
+
+### 5.5 Why coarsening gains little: comparison with a published study
 
 Simon Boehm's [worklog on optimizing SGEMM](https://siboehm.com/articles/22/CUDA-MMM) applies a similar sequence of techniques on another GPU (RTX A6000, Ampere) and reports each step as a percentage of cuBLAS. This makes it possible to check our results against an independent measurement and to locate where they diverge.
 
@@ -192,21 +219,21 @@ for (int c = 0; c < COARSE_FACTOR; c++) {      // outer loop: one B tile per out
 }
 ```
 
-Boehm's kernel puts the loop over K outside and the loop over outputs inside: each value read from shared memory is kept in a **register** and reused for 8 multiply-adds, which almost halves shared-memory traffic per output. Boehm's profiler shows that the tiled kernel spends most of its time waiting on the shared-memory pipeline (*MIO throttle* stalls), which is consistent with this explanation; it remains to be confirmed with Nsight Compute on this GPU.
+Boehm's kernel puts the loop over K outside and the loop over outputs inside: each value read from shared memory is kept in a **register** and reused for 8 multiply-adds, which almost halves shared-memory traffic per output. Boehm's profiler shows that his tiled kernel spends most of its time waiting on the shared-memory pipeline (*MIO throttle* stalls); the profile of section 5.4 shows the same on this GPU, and shows that coarsening leaves the shared-memory work unchanged.
 
 **This is the central result of section 5.** The chapter 5-6 techniques reduce traffic to global memory, but once the data is in caches and shared memory, the limit becomes the rate at which shared memory can feed the arithmetic units. Closing the gap requires keeping more data in registers, a technique called *register tiling*. The next subsection shows that this is exactly what cuBLAS does.
 
-### 5.5 What cuBLAS does differently
+### 5.6 What cuBLAS does differently
 
 To know which algorithm cuBLAS runs, Nsight Compute was used to name the kernel it launches at n = 4096: `cutlass_80_simt_sgemm_128x64_8x5_nn_align1`. The name describes its design:
 
 - `simt`: it runs on the standard FP32 units, **not on Tensor Cores** (which would use reduced-precision TF32 arithmetic). The comparison with the hand-written FP32 kernels is therefore fair.
-- `128x64`: each block of 128 threads computes a 128×64 tile of C, i.e. **64 outputs per thread kept in registers** (1 to 4 in the hand-written kernels). This is the register tiling identified in section 5.4.
+- `128x64`: each block of 128 threads computes a 128×64 tile of C, i.e. **64 outputs per thread kept in registers** (1 to 4 in the hand-written kernels). This is the register tiling identified in section 5.5.
 - `8x5`: tiles of A and B are processed 8 columns at a time through a **5-stage pipeline**, so that the next tiles are loaded while the current one is computed.
 
-Its FP32 multiply-add units are busy **69 %** of the time according to the profiler (`sm__pipe_fma_cycles_active`), at a clock of 2.69 GHz measured during the kernel.
+The profile of section 5.4 shows the effect of these choices. For the same 137 GFLOP, cuBLAS performs **12× fewer shared-memory wavefronts** (269 million against 3,221 million) and 2.4× fewer instructions than the best hand-written kernel. Its FMA pipe is busy **69 %** of the time (10 % for the hand-written kernels), at a clock of 2.6-2.7 GHz measured during the kernel. It also shows that high occupancy is not required: cuBLAS runs at **25 % occupancy**, yet its warps almost never stall, because each warp has many independent multiply-adds to issue (instruction-level parallelism) instead of relying on other warps to hide latency.
 
-**Conclusion of section 5.** The PMPP techniques were measured one by one: tiling and coarsening give a combined 1.95× speedup, consistent with an independent study, but leave the kernel at 14 % of cuBLAS. The measurements and the comparison show that the bottleneck has moved from global memory to shared memory, and the analysis of cuBLAS confirms that register tiling and software pipelining are what is missing.
+**Conclusion of section 5.** The PMPP techniques were measured one by one: tiling and coarsening give a combined 1.95× speedup, consistent with an independent study, but leave the kernel at 14 % of cuBLAS. The profiler shows that the bottleneck has moved from global memory to the load/store pipeline feeding shared memory, that neither tile size nor coarsening changes the shared-memory work, and that cuBLAS removes this bottleneck with register tiling (12× fewer shared-memory accesses).
 
 ## 6. Conclusion and next steps
 
@@ -214,11 +241,13 @@ This repository implemented the kernels of PMPP chapters 2-6 and measured them w
 
 1. **Memory-bound kernels** are close to the hardware limit (87-90 % of DRAM bandwidth) with the book's straightforward implementations.
 2. **For matrix multiplication**, tiling and coarsening bring a 1.95× speedup but stay at 14 % of cuBLAS, in agreement with an independent published study.
-3. **The reason** is that these techniques reduce global-memory traffic, whereas the bottleneck becomes shared-memory traffic per operation; cuBLAS removes it with register tiling.
+3. **The reason**, confirmed with Nsight Compute, is that these techniques reduce global-memory traffic, whereas the bottleneck is the load/store pipeline feeding shared memory (busy 97 % of the time, against 10 % for the arithmetic units); cuBLAS removes it with register tiling.
 
-Some explanations above are still hypotheses, and some techniques of the book remain to be studied. Planned work, in order of priority:
+Some questions remain open, and some techniques of the book remain to be studied. Planned work, in order of priority:
 
-- [ ] **Profile the hand-written SGEMM kernels with Nsight Compute** to confirm the shared-memory bottleneck (stall reasons, pipe utilization) and the barrier stalls of the 32×32 tile.
+- [x] **Profile the hand-written SGEMM kernels with Nsight Compute**: load/store-pipe bottleneck confirmed ([section 5.4](#54-what-the-profiler-shows)).
+- [ ] **Explain the lower pipe utilization of the 32×32 tile** (76 % vs 97 %, same shared-memory work); the barrier-stall hypothesis was not supported.
+- [ ] **Measure DRAM traffic per kernel** (the DRAM counters were not collected in this run) to quantify the L2 effect on the naive kernel at n = 4096.
 - [ ] **Parallel reduction** (PMPP ch. 10), from the naive version to warp-level primitives, compared with NVIDIA's CUB library.
 - [ ] **Roofline plot** of all kernels from profiler counters.
 - [ ] **Register tiling for SGEMM**: move the K loop outside the output loop, then compute 2D blocks of outputs per thread with vectorized loads (36.5 % then 78.4 % of cuBLAS in Boehm's study).
@@ -237,6 +266,8 @@ make -C ch5/matmul_tiling EXTRA="-DTILE_WIDTH=16" clean test bench   # another t
 
 scripts/sweep_matmul.sh                # all SGEMM variants x 4 sizes -> results/sweep_matmul.csv
 python3 scripts/plot_matmul.py         # tables and figures in results/
+scripts/profile_matmul.sh              # Nsight Compute profiles (needs GPU counter access)
+python3 scripts/summarize_ncu.py       # -> results/ncu_matmul.md
 ```
 
 On a laptop, connect the charger and select the highest performance mode before benchmarking ([section 3.3](#33-clock-and-power-mode-on-a-laptop)). The sweep records the measured clock before and after the run in `results/env_matmul.txt`.
@@ -268,7 +299,9 @@ pmpp-cuda-kernels/
 ├── cublas/                     # cuBLAS SGEMM reference, same interface as the hand-written kernels
 ├── scripts/
 │   ├── sweep_matmul.sh         # builds, tests and benchmarks every SGEMM configuration
-│   └── plot_matmul.py          # tables and figures from the sweep results
+│   ├── plot_matmul.py          # tables and figures from the sweep results
+│   ├── profile_matmul.sh       # Nsight Compute profile of the SGEMM kernels (section 5.4)
+│   └── summarize_ncu.py        # metric and stall tables from the profiles
 └── results/                    # raw data behind the numbers in this README
 ```
 
