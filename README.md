@@ -8,7 +8,7 @@
 ## Contents
 
 1. [Motivation and scope](#1-motivation-and-scope)
-2. [Background: what limits a GPU kernel](#2-background-what-limits-a-gpu-kernel)
+2. [Background: the PMPP model of a GPU](#2-background-the-pmpp-model-of-a-gpu)
 3. [Methodology: correctness, timing, clock](#3-methodology-correctness-timing-clock)
 4. [Memory-bound kernels: how close to the bandwidth limit?](#4-memory-bound-kernels-how-close-to-the-bandwidth-limit)
 5. [Matrix multiplication: testing the PMPP techniques against cuBLAS](#5-matrix-multiplication-testing-the-pmpp-techniques-against-cublas)
@@ -34,25 +34,29 @@ This repository therefore goes one step beyond implementing the book's kernels. 
 
 The next section introduces the few hardware notions needed to read the results.
 
-## 2. Background: what limits a GPU kernel
+## 2. Background: the PMPP model of a GPU
 
-This section gives the minimum vocabulary used in the rest of the document. Readers familiar with GPU architecture can skip to [section 3](#3-methodology-correctness-timing-clock).
+This section summarizes, with the vocabulary of PMPP, the notions needed to read the results. Readers familiar with the book can skip to [section 3](#3-methodology-correctness-timing-clock).
 
-**Execution model.** A GPU is made of *streaming multiprocessors* (SMs); the RTX 5060 Laptop has 26. A kernel launches a *grid* of *blocks*, each block being a group of threads that runs on one SM. Threads are executed in groups of 32 called *warps*. An SM keeps several warps resident at once (here at most 1,536 threads, i.e. 48 warps) and switches between them to hide the latency of memory accesses. The fraction of these 48 slots that a kernel actually fills is its *occupancy*.
+**Threads, blocks and warps (PMPP ch. 2-4).** A kernel launch creates a *grid* of *thread blocks*. Blocks are assigned to the *streaming multiprocessors* (SMs) block by block (*block scheduling*); the RTX 5060 Laptop has 26 SMs. Inside an SM, each block is partitioned into *warps* of 32 threads with consecutive `threadIdx` values (a 2D block is first linearized in row-major order, `threadIdx.x` varying fastest). The warp is the unit of scheduling and executes in SIMD fashion: one instruction for its 32 threads. When threads of a warp take different paths, the warp suffers *control divergence* and executes each path in a separate pass.
 
-**Memory hierarchy.** From slowest and largest to fastest and smallest: *DRAM* (global memory, 8 GB, 384 GB/s), the *L2 cache* (32 MiB, shared by all SMs), and inside each SM the *L1 cache*, part of which can be used as *shared memory* (up to 100 KiB per SM, managed explicitly by the programmer and shared by the threads of a block), and the *registers* (private to each thread, the fastest level). Most optimizations consist in moving data reuse to a faster level.
+**Latency tolerance and occupancy (ch. 4.6-4.7).** An SM holds more warps than it can execute at once. When a warp waits for a long-latency operation, such as a global memory access, the scheduler selects another ready warp at no cost (*zero-overhead scheduling*). The ratio of resident warps to the maximum supported is the *occupancy*; here the maximum is 48 warps (1,536 threads) per SM. Occupancy is limited by the resources that blocks share dynamically: thread slots, block slots (24 per SM), registers (64 K per SM) and shared memory.
 
-**Two limits: compute and bandwidth.** A kernel is limited either by how fast the GPU computes or by how fast it moves data. Which limit applies depends on the kernel's **arithmetic intensity**: the number of floating-point operations (FLOP) performed per byte transferred from DRAM.
+**Memory types (ch. 5.2).** *Registers* are on-chip and private to a thread; their values are used directly as instruction operands. *Shared memory* is on-chip and shared by the threads of a block, but reading it requires a load instruction, so it has "longer latency and lower bandwidth than registers". *Global memory* is the off-chip DRAM (8 GB, 384 GB/s), behind a 32 MiB L2 cache and per-SM L1 caches. Most optimizations move data reuse to a faster level.
+
+**Memory coalescing (ch. 6.1).** DRAM delivers data in *bursts* of consecutive locations. When the 32 threads of a warp execute a load instruction on consecutive addresses, the hardware *coalesces* their accesses into a single request that uses the whole burst. Scattered addresses require more requests and waste part of each burst.
+
+**Compute to global memory access ratio and roofline (ch. 5.1).** PMPP measures how much work a kernel does per byte with the *compute to global memory access ratio*, also called *arithmetic intensity*: floating-point operations per byte accessed in global memory (FLOP/B). Compared with the ratio of the GPU's peaks, it tells which limit applies:
 
 | | This GPU (RTX 5060 Laptop, Blackwell, cc 12.0) |
 |---|---|
 | FP32 compute peak | 128 FP32 lanes × 26 SMs × 2 FLOP (one fused multiply-add) × 2.75 GHz ≈ **18.3 TFLOP/s** |
 | DRAM bandwidth peak | 128-bit bus × 24 Gbps (GDDR7) = **384 GB/s** |
-| Balance point ("ridge") | 18.3 TFLOP/s / 384 GB/s ≈ **48 FLOP per byte** |
+| Ridge point of the roofline | 18.3 TFLOP/s / 384 GB/s ≈ **48 FLOP/B** |
 
-A kernel with an arithmetic intensity well below 48 FLOP/byte is **memory-bound**: its best possible speed is set by DRAM bandwidth. A kernel well above it is **compute-bound**: its best possible speed is set by the compute peak. This is the *roofline model* (PMPP ch. 5). The 2.75 GHz clock is measured, not taken from the specification sheet ([section 3](#3-methodology-correctness-timing-clock)).
+A kernel well below 48 FLOP/B is **memory-bound**: its throughput is at most the bandwidth times its ratio. A kernel well above is **compute-bound**. This is the *roofline model*. The 2.75 GHz clock is measured, not taken from the specification sheet ([section 3](#3-methodology-correctness-timing-clock)).
 
-The two kernel families studied here sit on opposite sides of this balance point: element-wise kernels ([section 4](#4-memory-bound-kernels-how-close-to-the-bandwidth-limit)) are memory-bound, matrix multiplication ([section 5](#5-matrix-multiplication-testing-the-pmpp-techniques-against-cublas)) is compute-bound in principle. Before looking at them, the next section describes how correctness and speed are established.
+The two kernel families studied here sit on opposite sides of the ridge point: element-wise kernels ([section 4](#4-memory-bound-kernels-how-close-to-the-bandwidth-limit)) are memory-bound, matrix multiplication ([section 5](#5-matrix-multiplication-testing-the-pmpp-techniques-against-cublas)) is compute-bound in principle. Before looking at them, the next section describes how correctness and speed are established.
 
 ## 3. Methodology: correctness, timing, clock
 
@@ -62,7 +66,7 @@ A performance number is only meaningful if the kernel is correct and the measure
 
 Each kernel is compared with a CPU reference before it is ever timed. For matrix multiplication, which has the most room for indexing errors, the test ([`ch3/matmul/test_matmul.cu`](ch3/matmul/test_matmul.cu), shared by all variants including cuBLAS) uses:
 
-- **9 matrix shapes** including degenerate (1×1×1), thin (one row or one column), rectangular, and sizes that are not multiples of the tile size, where boundary bugs appear. An earlier version tested only square matrices and missed a bounds error that only shows on rectangular ones.
+- **9 matrix shapes** including degenerate (1×1×1), thin (one row or one column), rectangular, and sizes that are not multiples of the tile size, where boundary bugs appear. PMPP (section 5.5) stops at square matrices and leaves the rectangular case as an exercise; an earlier version of this repository tested only square matrices and missed a boundary check that compared a row index of B with the height of C, an error invisible when all dimensions are equal.
 - **A double-precision CPU reference**, so that any discrepancy comes from the GPU result.
 - **A tolerance derived from floating-point error analysis** rather than an arbitrary threshold: each FP32 rounding introduces a relative error of at most u = 2⁻²⁴, and a dot product of K non-negative terms accumulates at most about K·u (Higham, ch. 3). The test uses K·ε = 2K·u.
 - **An output pre-filled with NaN**, so that an element the kernel forgets to write fails the test.
@@ -90,14 +94,16 @@ With a protocol that gives correct kernels and reproducible numbers (two complet
 
 ## 4. Memory-bound kernels: how close to the bandwidth limit?
 
-The first kernels of PMPP perform very few operations per element. Their arithmetic intensity is far below the balance point of [section 2](#2-background-what-limits-a-gpu-kernel), so their speed is limited by DRAM bandwidth, and the right question is: **what fraction of the 384 GB/s do they achieve?**
+The first kernels of PMPP perform very few operations per element. Their compute to global memory access ratio is far below the ridge point of [section 2](#2-background-the-pmpp-model-of-a-gpu), so their speed is limited by DRAM bandwidth, and the right question is: **what fraction of the 384 GB/s do they achieve?**
 
-### 4.1 Kernels
+### 4.1 Kernels and their memory access patterns
 
-- **Vector addition** (`vecadd`, PMPP ch. 2): C[i] = A[i] + B[i]. One addition per 12 bytes moved (two 4-byte reads, one write), i.e. 0.08 FLOP/byte.
-- **RGB to grayscale** (`color2gray`, PMPP ch. 3): each pixel's three color values are combined as 0.21·r + 0.72·g + 0.07·b. About 5 operations per 16 bytes moved (three reads, one write), i.e. 0.3 FLOP/byte.
+For a memory-bound kernel, what matters is not only how many bytes it moves, but whether the threads of each warp access them in a coalesced way.
 
-Both are 150 to 600 times below the balance point: even a perfect implementation is limited by bandwidth. Input sizes are chosen far larger than the 32 MiB L2 cache, otherwise the measurement would reflect the cache rather than DRAM.
+- **Vector addition** (`vecadd`, PMPP ch. 2): C[i] = A[i] + B[i], with 1D blocks of 256 threads and `i = blockIdx.x*blockDim.x + threadIdx.x`. One addition per 12 bytes moved (two 4-byte reads, one write): **0.08 FLOP/B**. Consecutive threads access consecutive elements, so each warp-wide load or store covers 32 × 4 = 128 contiguous bytes: all accesses are **fully coalesced**, and every byte of each DRAM burst is used.
+- **RGB to grayscale** (`color2gray`, PMPP ch. 3): each output pixel is 0.21·r + 0.72·g + 0.07·b, with 2D blocks of 32×32 threads. About 5 operations per 16 bytes moved (three reads, one write): **0.3 FLOP/B**. Each warp is one row of the block, i.e. 32 consecutive pixels, and the output write `Pout[p]` is fully coalesced. The input, however, is stored *interleaved*, (r g b)(r g b)…, and each thread reads `Pin[3p]`, `Pin[3p+1]`, `Pin[3p+2]`. For one load instruction (say the `r` component), the 32 threads of a warp access addresses 12 bytes apart: the warp spans 384 bytes to use 128 of them, so this access is **only partially coalesced**. The `g` and `b` loads touch the same bytes again. On recent GPUs these repeated touches are largely served by the L1 cache (PMPP notes that caches "automatically coalesce more of the kernel access patterns"), so DRAM traffic stays close to the minimum, but each pixel costs three times more memory requests than with contiguous accesses.
+
+Both kernels are 150 to 600 times below the ridge point: even a perfect implementation is limited by bandwidth. Input sizes are chosen far larger than the 32 MiB L2 cache, otherwise the measurement would reflect the cache rather than DRAM.
 
 ### 4.2 Results
 
@@ -108,28 +114,28 @@ Both are 150 to 600 times below the balance point: even a perfect implementation
 
 ### 4.3 Discussion
 
-Reaching 85-95 % of theoretical DRAM bandwidth is what a well-written streaming kernel is expected to achieve: the theoretical figure is never fully attainable in practice (DRAM refresh, read/write turnarounds). Both kernels use *coalesced* accesses, meaning that the 32 threads of a warp read consecutive addresses, which the hardware combines into a few wide memory transactions.
+Reaching 85-95 % of theoretical DRAM bandwidth is what a well-written streaming kernel is expected to achieve: the theoretical figure is never fully attainable in practice (DRAM refresh, read/write turnarounds). `vecadd`, whose accesses are all fully coalesced, reaches 90.5 %.
 
-`color2gray` is slightly below `vecadd`. A plausible explanation is its access pattern: each thread reads three consecutive floats, so for a given load instruction the threads of a warp access addresses 12 bytes apart instead of 4, and each instruction touches more memory segments; the L1 cache recovers most of the waste. This has not been profiled yet.
+`color2gray` is 4 % slower in bandwidth terms. This is consistent with the partially coalesced reads of its interleaved RGB input described in section 4.1: the cache keeps the extra DRAM traffic small, but the extra memory requests are not free. This explanation has not been confirmed with the profiler yet. If confirmed, PMPP's checklist (table 6.1) gives two remedies: rearrange the data layout (three separate R, G and B arrays, so that each load is fully coalesced), or load the pixels into shared memory with coalesced accesses and perform the strided reads there (shared memory "does not require coalescing").
 
 An earlier version of `color2gray` used the constants `0.21`, `0.72`, `0.07`, which C++ treats as **double-precision** values: the computation silently ran in FP64, which consumer GPUs execute at a small fraction of their FP32 rate. Writing `0.21f` removed the FP64 instructions and reduced register usage from 15 to 12. The kernel being memory-bound, the effect on its speed is small, but the same mistake in a compute-bound kernel would be costly.
 
-**Conclusion of section 4.** For memory-bound kernels, the PMPP implementations are already close to the hardware limit, and little remains to gain. Matrix multiplication is the opposite case: its arithmetic intensity allows it, in principle, to be limited by compute, and the techniques of the book aim precisely at reaching that regime. It is studied next.
+**Conclusion of section 4.** For memory-bound kernels, the PMPP implementations are already close to the hardware limit when their accesses are coalesced, and little remains to gain. Matrix multiplication is the opposite case: its compute to global memory access ratio allows it, in principle, to be limited by compute, and the techniques of the book aim precisely at reaching that regime. It is studied next.
 
 ## 5. Matrix multiplication: testing the PMPP techniques against cuBLAS
 
 Matrix multiplication (*SGEMM* in BLAS terminology: Single-precision GEneral Matrix Multiply) computes C = A·B, where each element of C is a dot product of a row of A and a column of B. It is the reference kernel of GPU computing: it dominates the cost of deep learning and many scientific codes, and NVIDIA's cuBLAS library provides a highly tuned implementation.
 
-For n × n matrices, SGEMM performs 2n³ operations on 3n² values. At n = 4096 this is 137 GFLOP for 201 MB of data, i.e. an arithmetic intensity of up to 680 FLOP/byte, far above the balance point of 48. **SGEMM can therefore be compute-bound, but only if each value loaded from DRAM is reused many times.** PMPP chapters 3, 5 and 6 introduce successive techniques to achieve this reuse. This section measures what each technique gains, compares the result with cuBLAS, and explains the remaining gap.
+For n × n matrices, SGEMM performs 2n³ operations on 3n² values. At n = 4096 this is 137 GFLOP for 201 MB of data, so the compute to global memory access ratio can reach 680 FLOP/B if every value is loaded only once, far above the ridge point of 48. **SGEMM can therefore be compute-bound, but only if each value loaded from DRAM is reused many times.** PMPP chapters 3, 5 and 6 introduce successive techniques to achieve this reuse. This section measures what each technique gains, compares the result with cuBLAS, and explains the remaining gap.
 
 ### 5.1 Kernels studied
 
 | Kernel | PMPP | Idea | Expected effect |
 |---|---|---|---|
-| **Naive** | ch. 3 | One thread computes one element of C, reading its row of A and column of B directly from global memory. | Each value is loaded from memory n times in the worst case; relies on caches for reuse. |
-| **Tiled** (16×16 or 32×32) | ch. 5 | Each block loads square *tiles* of A and B into shared memory, then all its threads compute from these on-chip copies. | Global-memory traffic divided by the tile width T. |
-| **Tiled + thread coarsening** (×1, ×2, ×4) | ch. 6 | Each thread computes several elements of C (in different column tiles), reusing the same tile of A. | Less redundant loading of A tiles, fewer blocks. |
-| **cuBLAS** | — | NVIDIA's library, used as the reference. | Best achievable performance in practice. |
+| **Naive** | 3.4 | One thread computes one element of C as a dot product of a row of A and a column of B, read directly from global memory. Accesses to B (`B[k*N + col]`) are coalesced; each element of A is broadcast to the whole warp. | Compute to global memory access ratio of **0.25 FLOP/B** (two 4-byte loads per multiply-add, section 5.1): memory-bound in the book's model. |
+| **Tiled** (16×16 or 32×32) | 5.3-5.5 | The dot product is split into *phases* (*strip-mining*). In each phase, the threads of a block collaboratively load one tile of A and one tile of B into shared memory, then compute from these copies. Two barriers protect the read-after-write and write-after-read dependences. | Global memory traffic divided by the tile width: **4 FLOP/B** (16×16) or **8 FLOP/B** (32×32). |
+| **Tiled + thread coarsening** (factor 1, 2, 4) | 6.3 | Each thread computes several output elements in adjacent tiles, so a block loads each tile of A once for several tiles of C. | Reduces the *price of parallelism*: the redundant loading of the same A tile by different blocks. |
+| **cuBLAS** | 5.4 | One of the "highly optimized libraries" the book points to, used as the reference. | Best achievable performance in practice. |
 
 Tile size and coarsening factor are compile-time parameters, so a single script ([`scripts/sweep_matmul.sh`](scripts/sweep_matmul.sh)) builds, tests and benchmarks all 10 configurations at 4 matrix sizes. Each configuration must pass the correctness test of [section 3.1](#31-correctness-before-speed) before being timed.
 
@@ -153,9 +159,9 @@ The best hand-written kernel is **1.95× faster than the naive one** at n = 4096
 
 ![Tile size x coarsening factor at n = 2048](results/matmul_configs.png)
 
-**Tiling helps, but much less than the reduction in memory traffic would suggest.** A 16×16 tile divides global-memory traffic by 16, yet the speedup over the naive kernel is only 1.37× at n = 2048. The naive kernel was therefore not limited by DRAM: its redundant reads were already served by the caches (Nsight Compute measures a **95 % L1 hit rate** for it, [section 5.4](#54-what-the-profiler-shows)). The exception confirms the rule: at n = 4096, a single matrix (64 MiB) no longer fits in the 32 MiB L2 cache, and the naive kernel loses 29 % of its throughput, while the tiled kernels lose 4-12 % and cuBLAS nothing.
+**Tiling helps, but much less than the reduction in memory traffic would suggest.** A 16×16 tile divides global-memory traffic by 16, yet the speedup over the naive kernel is only 1.37× at n = 2048. The naive kernel was therefore not limited by DRAM, contrary to what the book's model predicts: at 0.25 FLOP/B and 384 GB/s it would be capped at 96 GFLOP/s, yet it reaches 1,084 GFLOP/s, eleven times more. Its redundant reads are served by the caches, which PMPP's model does not include (Nsight Compute measures a **95 % L1 hit rate**, [section 5.4](#54-what-the-profiler-shows)). The exception confirms the rule: at n = 4096, a single matrix (64 MiB) no longer fits in the 32 MiB L2 cache, and the naive kernel loses 29 % of its throughput, while the tiled kernels lose 4-12 % and cuBLAS nothing.
 
-**A larger tile is slower.** A 32×32 tile halves global traffic again compared with 16×16, but is 4 % slower at n = 2048 and 13 % slower at n = 4096. Both tile sizes perform exactly the same amount of shared-memory work, so the difference must come from how well that work is overlapped. A 32×32 tile requires blocks of 1,024 threads, and only one such block fits on an SM (limit: 1,536 threads), so only 32 of the 48 warp slots are used (67 % occupancy, confirmed by the profiler). With 16×16 tiles, six independent blocks of 256 threads share the SM (100 % occupancy), and the profiler shows that they keep the load/store pipeline busy 97 % of the time, against 76 % for the 32×32 tile. This again shows that global traffic is not the limiting factor. *(Before profiling, the expected cause was that the 32 warps of the single block stall together at the `__syncthreads()` barriers; the profiler does not support it: barrier stalls are lower with the 32×32 tile. The exact mechanism of the lower pipeline utilization remains open, see section 6.)*
+**A larger tile is slower.** A 32×32 tile halves global traffic again compared with 16×16, but is 4 % slower at n = 2048 and 13 % slower at n = 4096. Both tile sizes perform exactly the same amount of shared-memory work, so the difference must come from how well that work is overlapped. A 32×32 tile requires blocks of 1,024 threads, and only one such block fits on an SM (limit: 1,536 threads), so only 32 of the 48 warp slots are used (67 % occupancy, confirmed by the profiler). With 16×16 tiles, six independent blocks of 256 threads share the SM (100 % occupancy), and the profiler shows that they keep the load/store pipeline busy 97 % of the time, against 76 % for the 32×32 tile. With fewer resident warps, the 32×32 tile has less *latency tolerance* in PMPP's sense (section 4.6): fewer ready warps to schedule while others wait. This again shows that global traffic is not the limiting factor. *(Before profiling, the expected cause was that the 32 warps of the single block stall together at the `__syncthreads()` barriers; the profiler does not support it: barrier stalls are lower with the 32×32 tile. The exact mechanism of the lower pipeline utilization remains open, see section 6.)*
 
 **Thread coarsening gives a small gain:** +5 % with factor 2 and +7 % with factor 4 at n = 2048, for 16×16 tiles. Sections [5.4](#54-what-the-profiler-shows) and [5.5](#55-why-coarsening-gains-little-comparison-with-a-published-study) explain why the gain is small. As a sanity check, coarsening with factor 1 reproduces the plain tiled kernel (1,474 vs 1,482 GFLOP/s), so the coarsened code adds no overhead and the measurements are consistent.
 
@@ -183,7 +189,7 @@ Timings show *that* a kernel is slow; hardware counters show *where* the time go
 
 Four observations follow:
 
-1. **The tiled kernels are limited by the load/store pipe, not by arithmetic or DRAM.** Their LSU pipe is busy 96-97 % of the time while the FMA pipe is busy only 10 %: the GPU spends its time moving operands, not computing. The two main stall reasons (shared-memory queue full, waiting for global loads) say the same thing.
+1. **The tiled kernels are limited by the load/store pipe, not by arithmetic or DRAM.** Their LSU pipe is busy 96-97 % of the time while the FMA pipe is busy only 10 %: the GPU spends its time moving operands, not computing. The two main stall reasons (shared-memory queue full, waiting for global loads) say the same thing. This is the situation described in PMPP section 5.2: an operand in shared memory, unlike one in a register, requires a separate load instruction, and "the processor can fetch and execute only a limited number of instructions per clock cycle". With two shared-memory loads per multiply-add, load instructions, not arithmetic, set the pace.
 2. **Neither the tile size nor coarsening changes the shared-memory work.** The three tiled kernels execute *exactly* the same number of shared-memory wavefronts (3,221 million), because all of them read two values from shared memory per multiply-add. Coarsening only removes other instructions (−18 %: fewer global loads of A tiles and fewer index computations), hence its small gain. This is the direct measurement behind the analysis of section 5.5.
 3. **Bank conflicts are not the problem**: they are negligible in every kernel.
 4. **The naive kernel is served by the L1 cache** (95 % hit rate): its redundant global reads rarely reach DRAM, which is why tiling, designed to reduce DRAM traffic, gains only 1.4-1.9×.
@@ -221,7 +227,7 @@ for (int c = 0; c < COARSE_FACTOR; c++) {      // outer loop: one B tile per out
 
 Boehm's kernel puts the loop over K outside and the loop over outputs inside: each value read from shared memory is kept in a **register** and reused for 8 multiply-adds, which almost halves shared-memory traffic per output. Boehm's profiler shows that his tiled kernel spends most of its time waiting on the shared-memory pipeline (*MIO throttle* stalls); the profile of section 5.4 shows the same on this GPU, and shows that coarsening leaves the shared-memory work unchanged.
 
-**This is the central result of section 5.** The chapter 5-6 techniques reduce traffic to global memory, but once the data is in caches and shared memory, the limit becomes the rate at which shared memory can feed the arithmetic units. Closing the gap requires keeping more data in registers, a technique called *register tiling*. The next subsection shows that this is exactly what cuBLAS does.
+**This is the central result of section 5.** PMPP coarsening does what the book says: it reduces the price of parallelism, the redundant loading of A tiles (18 % fewer instructions). But that price was not the bottleneck. PMPP section 6.5 warns that "if the optimization that is applied does not target the bottleneck resource, there may be no benefit": the chapter 5-6 techniques reduce traffic to global memory, whereas once the data is in caches and shared memory, the limit becomes the rate at which shared memory can feed the arithmetic units. Closing the gap requires keeping more data in registers, a technique called *register tiling*; PMPP introduces it for stencils (section 8.5), where "many reads from and writes to the shared memory are now shifted into registers". The next subsection shows that this is exactly what cuBLAS does.
 
 ### 5.6 What cuBLAS does differently
 
@@ -231,7 +237,7 @@ To know which algorithm cuBLAS runs, Nsight Compute was used to name the kernel 
 - `128x64`: each block of 128 threads computes a 128×64 tile of C, i.e. **64 outputs per thread kept in registers** (1 to 4 in the hand-written kernels). This is the register tiling identified in section 5.5.
 - `8x5`: tiles of A and B are processed 8 columns at a time through a **5-stage pipeline**, so that the next tiles are loaded while the current one is computed.
 
-The profile of section 5.4 shows the effect of these choices. For the same 137 GFLOP, cuBLAS performs **12× fewer shared-memory wavefronts** (269 million against 3,221 million) and 2.4× fewer instructions than the best hand-written kernel. Its FMA pipe is busy **69 %** of the time (10 % for the hand-written kernels), at a clock of 2.6-2.7 GHz measured during the kernel. It also shows that high occupancy is not required: cuBLAS runs at **25 % occupancy**, yet its warps almost never stall, because each warp has many independent multiply-adds to issue (instruction-level parallelism) instead of relying on other warps to hide latency.
+The profile of section 5.4 shows the effect of these choices. For the same 137 GFLOP, cuBLAS performs **12× fewer shared-memory wavefronts** (269 million against 3,221 million) and 2.4× fewer instructions than the best hand-written kernel. Its FMA pipe is busy **69 %** of the time (10 % for the hand-written kernels), at a clock of 2.6-2.7 GHz measured during the kernel. It also qualifies a rule of PMPP chapter 4, "the higher the occupancy, the better it can hide long-latency operations": cuBLAS runs at only **25 % occupancy**, yet its warps almost never stall, because each warp has many independent multiply-adds to issue (instruction-level parallelism) instead of relying on other warps for latency tolerance.
 
 **Conclusion of section 5.** The PMPP techniques were measured one by one: tiling and coarsening give a combined 1.95× speedup, consistent with an independent study, but leave the kernel at 14 % of cuBLAS. The profiler shows that the bottleneck has moved from global memory to the load/store pipeline feeding shared memory, that neither tile size nor coarsening changes the shared-memory work, and that cuBLAS removes this bottleneck with register tiling (12× fewer shared-memory accesses).
 
@@ -241,14 +247,15 @@ This repository implemented the kernels of PMPP chapters 2-6 and measured them w
 
 1. **Memory-bound kernels** are close to the hardware limit (87-90 % of DRAM bandwidth) with the book's straightforward implementations.
 2. **For matrix multiplication**, tiling and coarsening bring a 1.95× speedup but stay at 14 % of cuBLAS, in agreement with an independent published study.
-3. **The reason**, confirmed with Nsight Compute, is that these techniques reduce global-memory traffic, whereas the bottleneck is the load/store pipeline feeding shared memory (busy 97 % of the time, against 10 % for the arithmetic units); cuBLAS removes it with register tiling.
+3. **The reason**, confirmed with Nsight Compute, is that these techniques reduce global memory traffic, whereas the bottleneck is the load/store pipeline feeding shared memory (busy 97 % of the time, against 10 % for the arithmetic units); cuBLAS removes it with register tiling. This is PMPP's lesson of section 6.5 measured on real hardware: an optimization helps only if it targets the bottleneck resource, and finding that resource requires the profiler.
 
 Some questions remain open, and some techniques of the book remain to be studied. Planned work, in order of priority:
 
 - [x] **Profile the hand-written SGEMM kernels with Nsight Compute**: load/store-pipe bottleneck confirmed ([section 5.4](#54-what-the-profiler-shows)).
 - [ ] **Explain the lower pipe utilization of the 32×32 tile** (76 % vs 97 %, same shared-memory work); the barrier-stall hypothesis was not supported.
 - [ ] **Measure DRAM traffic per kernel** (the DRAM counters were not collected in this run) to quantify the L2 effect on the naive kernel at n = 4096.
-- [ ] **Parallel reduction** (PMPP ch. 10), from the naive version to warp-level primitives, compared with NVIDIA's CUB library.
+- [ ] **Explain the 4 % gap of `color2gray`** with the profiler, and test a planar (structure-of-arrays) RGB layout.
+- [ ] **Parallel reduction** (PMPP ch. 10): reduction tree with control divergence, convergent version (less control and memory divergence), shared memory, segmented multiblock reduction with atomics, thread coarsening, plus warp shuffles; compared with NVIDIA's CUB library.
 - [ ] **Roofline plot** of all kernels from profiler counters.
 - [ ] **Register tiling for SGEMM**: move the K loop outside the output loop, then compute 2D blocks of outputs per thread with vectorized loads (36.5 % then 78.4 % of cuBLAS in Boehm's study).
 
