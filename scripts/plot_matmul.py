@@ -25,8 +25,8 @@ GRID_N = int(sys.argv[1]) if len(sys.argv) > 1 else 2048
 # Categorical palette in fixed order (validated for colour-vision deficiency).
 # Two slots are low-contrast on white, so every line also has its own marker
 # and a legend entry: identity never relies on colour alone.
-COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#6250d6"]
-MARKERS = ["o", "s", "D", "^", "v"]
+COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#6250d6"]
+MARKERS = ["o", "s", "D", "^", "P", "v"]
 INK, INK2, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 
 df = pd.read_csv(RES / "sweep_matmul.csv")
@@ -39,14 +39,19 @@ df["pct_cublas"] = 100 * df["gflops"] / df["n"].map(cublas)
 df["speedup_naive"] = df["gflops"] / df["n"].map(naive)
 df["cv_pct"] = 100 * df["stddev_ms"] / df["median_ms"]
 
-# Best hand-written configuration = highest median GFLOP/s at the largest size.
+# Best configuration of each kernel family = highest median GFLOP/s at the largest size.
 nmax = df["n"].max()
-hand = df[df.kernel != "cublas"]
-best_cfg = hand[hand.n == nmax].sort_values("gflops").iloc[-1]["config"]
+
+
+def best_of(kernel):
+    sub = df[(df.kernel == kernel) & (df.n == nmax)]
+    return sub.sort_values("gflops").iloc[-1]["config"] if len(sub) else None
 
 # ---------------------------------------------------------------- tables
 lines = [f"### SGEMM, square M = N = K, FP32 (median of {int(df.reps.iloc[0])} runs)\n"]
-summary_cfgs = ["naive", "tiled t16 c1", "tiled t32 c1", best_cfg, "cublas"]
+summary_cfgs = [c for c in ["naive", "tiled t16 c1", best_of("tiled coarsened"),
+                            best_of("register tiled 1D"), best_of("register tiled 2D"), "cublas"]
+                if c is not None]
 lines.append("| Kernel | " + " | ".join(f"n = {n}" for n in sorted(df.n.unique())) + " |")
 lines.append("|---|" + "---|" * df.n.nunique())
 for cfg in dict.fromkeys(summary_cfgs):
@@ -88,7 +93,7 @@ for i, cfg in enumerate(dict.fromkeys(summary_cfgs)):
             linewidth=2, label=cfg)
     # Direct label only on lines that are visually separated (the three tiled
     # variants overlap; they are identified by the legend and their markers).
-    if cfg in ("naive", "cublas"):
+    if cfg in ("naive", "cublas") or cfg.startswith("register tiled"):
         last = sub.iloc[-1]
         ax.annotate(f"{last.gflops:,.0f}", (last.n, last.gflops), xytext=(8, 0),
                     textcoords="offset points", va="center", color=INK, fontsize=9)

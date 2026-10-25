@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 NCU = ROOT / "results" / "ncu"
-CONFIGS = ["naive", "tiled16", "tiled32", "tiled16_c4", "cublas"]
+CONFIGS = ["naive", "tiled16", "tiled32", "tiled16_c4", "regtile1d", "regtile2d", "cublas"]
 
 # (label, metric name, formatter)
 KEY_METRICS = [
@@ -33,6 +33,7 @@ KEY_METRICS = [
     ("FMA pipe active (%)", "sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active", "pct"),
     ("LSU pipe active (%)", "sm__inst_executed_pipe_lsu.avg.pct_of_peak_sustained_active", "pct"),
     ("Shared-mem load wavefronts (M)", "l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ld.sum", "mega"),
+    ("Shared-mem load instructions (M)", "smsp__inst_executed_op_shared_ld.sum", "mega"),
     ("Shared-mem load bank conflicts (M)", "l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_ld.sum", "mega"),
     ("Instructions executed (M)", "smsp__inst_executed.sum", "mega"),
 ]

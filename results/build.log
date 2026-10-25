@@ -12,7 +12,7 @@ ptxas info    : Compiling entry function '_Z6MatmulPKfS0_Pfiii' for 'sm_120'
 ptxas info    : Function properties for _Z6MatmulPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 32 registers, used 0 barriers
-ptxas info    : Compile time = 4.685 ms
+ptxas info    : Compile time = 5.344 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  bench_matmul.cu matmul.o -o bench_matmul
@@ -32,7 +32,7 @@ ptxas info    : Compiling entry function '_Z13Matmul_tilingPKfS0_Pfiii' for 'sm_
 ptxas info    : Function properties for _Z13Matmul_tilingPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 36 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 4.274 ms
+ptxas info    : Compile time = 4.309 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 bench_matmul.cu matmul.o -o bench_matmul
@@ -52,7 +52,7 @@ ptxas info    : Compiling entry function '_Z13Matmul_tilingPKfS0_Pfiii' for 'sm_
 ptxas info    : Function properties for _Z13Matmul_tilingPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 38 registers, used 1 barriers, 8192 bytes smem
-ptxas info    : Compile time = 5.436 ms
+ptxas info    : Compile time = 5.220 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 bench_matmul.cu matmul.o -o bench_matmul
@@ -72,7 +72,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 36 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 4.316 ms
+ptxas info    : Compile time = 4.215 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=1 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=1 bench_matmul.cu matmul.o -o bench_matmul
@@ -92,7 +92,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 40 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 8.675 ms
+ptxas info    : Compile time = 8.951 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=2 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=2 bench_matmul.cu matmul.o -o bench_matmul
@@ -112,7 +112,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 40 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 14.075 ms
+ptxas info    : Compile time = 13.106 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=4 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=16 -DCOARSE_FACTOR=4 bench_matmul.cu matmul.o -o bench_matmul
@@ -132,7 +132,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 38 registers, used 1 barriers, 8192 bytes smem
-ptxas info    : Compile time = 5.780 ms
+ptxas info    : Compile time = 5.527 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=1 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=1 bench_matmul.cu matmul.o -o bench_matmul
@@ -152,7 +152,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 40 registers, used 1 barriers, 8192 bytes smem
-ptxas info    : Compile time = 14.078 ms
+ptxas info    : Compile time = 13.382 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=2 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=2 bench_matmul.cu matmul.o -o bench_matmul
@@ -172,7 +172,7 @@ ptxas info    : Compiling entry function '_Z17Matmul_coarseningPKfS0_Pfiii' for 
 ptxas info    : Function properties for _Z17Matmul_coarseningPKfS0_Pfiii
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 40 registers, used 1 barriers, 8192 bytes smem
-ptxas info    : Compile time = 22.144 ms
+ptxas info    : Compile time = 20.969 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 test_matmul.cu matmul.o -o test_matmul
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 bench_matmul.cu matmul.o -o bench_matmul
@@ -181,6 +181,166 @@ make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coar
 make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
 rm -f test_matmul bench_matmul *.o
 make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch6/matmul_coarsening'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+=== extra/register_tiling1D -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z22Matmul_register_tilingPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z22Matmul_register_tilingPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 48 registers, used 1 barriers, 8192 bytes smem
+ptxas info    : Compile time = 12.812 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+=== extra/register_tiling1D -DTILE_WIDTH=32 -DCOARSE_FACTOR=8 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=8 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z22Matmul_register_tilingPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z22Matmul_register_tilingPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 64 registers, used 1 barriers, 8192 bytes smem
+ptxas info    : Compile time = 22.645 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=8 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=8 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+=== extra/register_tiling1D -DTILE_WIDTH=64 -DCOARSE_FACTOR=4 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=4 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z22Matmul_register_tilingPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z22Matmul_register_tilingPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 40 registers, used 1 barriers, 32768 bytes smem
+ptxas info    : Compile time = 19.622 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=4 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=4 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+=== extra/register_tiling1D -DTILE_WIDTH=64 -DCOARSE_FACTOR=8 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=8 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z22Matmul_register_tilingPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z22Matmul_register_tilingPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 64 registers, used 1 barriers, 32768 bytes smem
+ptxas info    : Compile time = 36.328 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=8 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=8 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling1D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+=== extra/register_tiling2D -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z22Matmul_register_tilingPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z22Matmul_register_tilingPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 64 registers, used 1 barriers, 8192 bytes smem
+ptxas info    : Compile time = 24.709 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=4 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+=== extra/register_tiling2D -DTILE_WIDTH=32 -DCOARSE_FACTOR=8 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=8 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z22Matmul_register_tilingPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z22Matmul_register_tilingPKfS0_Pfiii
+    368 bytes stack frame, 104 bytes spill stores, 104 bytes spill loads
+ptxas info    : Used 255 registers, used 1 barriers, 368 bytes cumulative stack size, 8192 bytes smem
+ptxas info    : Compile time = 31.004 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=8 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=32 -DCOARSE_FACTOR=8 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+=== extra/register_tiling2D -DTILE_WIDTH=64 -DCOARSE_FACTOR=4 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=4 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z22Matmul_register_tilingPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z22Matmul_register_tilingPKfS0_Pfiii
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 64 registers, used 1 barriers, 32768 bytes smem
+ptxas info    : Compile time = 41.738 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=4 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=4 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+=== extra/register_tiling2D -DTILE_WIDTH=64 -DCOARSE_FACTOR=8 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=8 -c matmul.cu -o matmul.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z22Matmul_register_tilingPKfS0_Pfiii' for 'sm_120'
+ptxas info    : Function properties for _Z22Matmul_register_tilingPKfS0_Pfiii
+    1472 bytes stack frame, 1204 bytes spill stores, 1204 bytes spill loads
+ptxas info    : Used 255 registers, used 1 barriers, 1472 bytes cumulative stack size, 32768 bytes smem
+ptxas info    : Compile time = 64.914 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=8 test_matmul.cu matmul.o -o test_matmul
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DTILE_WIDTH=64 -DCOARSE_FACTOR=8 bench_matmul.cu matmul.o -o bench_matmul
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
+rm -f test_matmul bench_matmul *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/extra/register_tiling2D'
 make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/cublas'
 rm -f test_matmul bench_matmul *.o
 make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/cublas'

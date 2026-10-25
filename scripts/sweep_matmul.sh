@@ -65,6 +65,16 @@ for t in 16 32; do
     run ch6/matmul_coarsening "-DTILE_WIDTH=$t -DCOARSE_FACTOR=$c"
   done
 done
+for t in 32 64; do
+  for c in 4 8; do
+    run extra/register_tiling1D "-DTILE_WIDTH=$t -DCOARSE_FACTOR=$c"
+  done
+done
+for t in 32 64; do
+  for c in 4 8; do
+    run extra/register_tiling2D "-DTILE_WIDTH=$t -DCOARSE_FACTOR=$c"
+  done
+done
 run cublas ""
 
 {

@@ -2,11 +2,12 @@
 
 | Kernel | n = 512 | n = 1024 | n = 2048 | n = 4096 |
 |---|---|---|---|---|
-| `naive` | 998 GFLOP/s (16 %) | 1,065 GFLOP/s (12 %) | 1,084 GFLOP/s (11 %) | 769 GFLOP/s (7 %) |
-| `tiled t16 c1` | 1,364 GFLOP/s (22 %) | 1,463 GFLOP/s (17 %) | 1,482 GFLOP/s (14 %) | 1,425 GFLOP/s (13 %) |
-| `tiled t32 c1` | 1,344 GFLOP/s (22 %) | 1,406 GFLOP/s (16 %) | 1,428 GFLOP/s (14 %) | 1,263 GFLOP/s (12 %) |
-| `tiled coarsened t16 c4` | 1,423 GFLOP/s (23 %) | 1,533 GFLOP/s (18 %) | 1,580 GFLOP/s (15 %) | 1,500 GFLOP/s (14 %) |
-| `cublas` | 6,191 GFLOP/s (100 %) | 8,595 GFLOP/s (100 %) | 10,291 GFLOP/s (100 %) | 10,628 GFLOP/s (100 %) |
+| `naive` | 1,018 GFLOP/s (17 %) | 1,066 GFLOP/s (12 %) | 1,084 GFLOP/s (11 %) | 770 GFLOP/s (8 %) |
+| `tiled t16 c1` | 1,369 GFLOP/s (22 %) | 1,462 GFLOP/s (17 %) | 1,482 GFLOP/s (15 %) | 1,445 GFLOP/s (14 %) |
+| `tiled coarsened t16 c2` | 1,417 GFLOP/s (23 %) | 1,522 GFLOP/s (18 %) | 1,544 GFLOP/s (16 %) | 1,516 GFLOP/s (15 %) |
+| `register tiled 1D t64 c8` | 3,370 GFLOP/s (55 %) | 4,486 GFLOP/s (52 %) | 4,640 GFLOP/s (47 %) | 4,426 GFLOP/s (44 %) |
+| `register tiled 2D t64 c4` | 4,161 GFLOP/s (68 %) | 5,717 GFLOP/s (66 %) | 6,002 GFLOP/s (61 %) | 5,598 GFLOP/s (55 %) |
+| `cublas` | 6,157 GFLOP/s (100 %) | 8,625 GFLOP/s (100 %) | 9,806 GFLOP/s (100 %) | 10,122 GFLOP/s (100 %) |
 
 _Percentages are relative to cuBLAS at the same size._
 
@@ -14,7 +15,7 @@ _Percentages are relative to cuBLAS at the same size._
 
 | Tile \ coarse | 1 | 2 | 4 |
 |---|---|---|---|
-| 16 | 1,474 (14.3 %) | 1,544 (15.0 %) | 1,580 (15.4 %) |
-| 32 | 1,420 (13.8 %) | 1,474 (14.3 %) | 1,478 (14.4 %) |
+| 16 | 1,474 (15.0 %) | 1,544 (15.7 %) | 1,580 (16.1 %) |
+| 32 | 1,420 (14.5 %) | 1,474 (15.0 %) | 1,478 (15.1 %) |
 
-_Runs with stddev > 2 % of the median:_ `naive` n=512 (3.9 %), `tiled t16 c1` n=512 (13.6 %), `tiled t16 c1` n=4096 (4.6 %), `tiled coarsened t16 c1` n=4096 (4.8 %), `tiled coarsened t16 c2` n=4096 (6.3 %), `tiled coarsened t16 c4` n=512 (3.8 %), `tiled coarsened t16 c4` n=4096 (4.4 %), `tiled coarsened t32 c1` n=512 (6.3 %), `tiled coarsened t32 c2` n=512 (5.7 %), `cublas` n=512 (14.3 %), `cublas` n=1024 (5.3 %), `cublas` n=4096 (2.6 %)
+_Runs with stddev > 2 % of the median:_ `naive` n=512 (4.1 %), `tiled t16 c1` n=4096 (4.0 %), `tiled coarsened t16 c1` n=4096 (5.2 %), `tiled coarsened t16 c2` n=512 (2.5 %), `tiled coarsened t16 c2` n=4096 (4.3 %), `tiled coarsened t16 c4` n=512 (12.0 %), `tiled coarsened t16 c4` n=4096 (7.1 %), `register tiled 1D t32 c4` n=512 (4.5 %), `register tiled 1D t32 c4` n=4096 (10.2 %), `register tiled 1D t32 c8` n=4096 (11.8 %), `register tiled 1D t64 c4` n=512 (3.1 %), `register tiled 1D t64 c4` n=4096 (4.1 %), `register tiled 1D t64 c8` n=512 (16.2 %), `register tiled 1D t64 c8` n=1024 (4.8 %), `register tiled 1D t64 c8` n=4096 (9.0 %), `register tiled 2D t32 c4` n=512 (9.8 %), `register tiled 2D t32 c4` n=4096 (13.7 %), `register tiled 2D t32 c8` n=512 (2.7 %), `register tiled 2D t64 c4` n=512 (5.9 %), `register tiled 2D t64 c4` n=1024 (3.0 %), `register tiled 2D t64 c4` n=4096 (15.8 %), `cublas` n=512 (29.1 %), `cublas` n=1024 (6.1 %)

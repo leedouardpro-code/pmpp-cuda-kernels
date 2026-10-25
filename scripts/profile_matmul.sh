@@ -36,6 +36,8 @@ profile naive          ch3/matmul            ""
 profile tiled16        ch5/matmul_tiling     "-DTILE_WIDTH=16"
 profile tiled32        ch5/matmul_tiling     "-DTILE_WIDTH=32"
 profile tiled16_c4     ch6/matmul_coarsening "-DTILE_WIDTH=16 -DCOARSE_FACTOR=4"
+profile regtile1d      extra/register_tiling1D "-DTILE_WIDTH=64 -DCOARSE_FACTOR=8"
+profile regtile2d      extra/register_tiling2D "-DTILE_WIDTH=64 -DCOARSE_FACTOR=4"
 profile cublas         cublas                ""
 
 echo "Reports in results/ncu/. Next: python3 scripts/summarize_ncu.py"
