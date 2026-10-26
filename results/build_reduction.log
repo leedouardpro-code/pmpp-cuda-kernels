@@ -1,0 +1,35 @@
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/utils'
+make: 'clock_probe' is up to date.
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/utils'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/cub_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/cub_reduction'
+=== ch10/cub_reduction  ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/cub_reduction'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  -c reduction.cu -o reduction.o
+ptxas info    : 65 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub17_V_300304_SM_12006detail6reduce28DeviceReduceSingleTileKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPfSB_iS9_ffNS7_8identityEEEvT0_T1_T2_T3_T4_T6_' for 'sm_120'
+ptxas info    : Function properties for _ZN3cub17_V_300304_SM_12006detail6reduce28DeviceReduceSingleTileKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPfSB_iS9_ffNS7_8identityEEEvT0_T1_T2_T3_T4_T6_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 39 registers, used 1 barriers, 84 bytes smem
+ptxas info    : Compile time = 27.724 ms
+ptxas info    : Compiling entry function '_ZN3cub17_V_300304_SM_12006detail6reduce18DeviceReduceKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPKfjS9_fNS7_8identityEEEvT0_PT3_T1_NS0_13GridEvenShareISH_EET2_T4_' for 'sm_120'
+ptxas info    : Function properties for _ZN3cub17_V_300304_SM_12006detail6reduce18DeviceReduceKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPKfjS9_fNS7_8identityEEEvT0_PT3_T1_NS0_13GridEvenShareISH_EET2_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 36 registers, used 1 barriers, 84 bytes smem
+ptxas info    : Compile time = 20.166 ms
+ptxas info    : Compiling entry function '_ZN3cub17_V_300304_SM_12006detail6reduce28DeviceReduceSingleTileKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPKfPfjS9_ffNS7_8identityEEEvT0_T1_T2_T3_T4_T6_' for 'sm_120'
+ptxas info    : Function properties for _ZN3cub17_V_300304_SM_12006detail6reduce28DeviceReduceSingleTileKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPKfPfjS9_ffNS7_8identityEEEvT0_T1_T2_T3_T4_T6_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 39 registers, used 1 barriers, 84 bytes smem
+ptxas info    : Compile time = 21.959 ms
+ptxas info    : Compiling entry function '_ZN3cub17_V_300304_SM_12006detail11EmptyKernelIvEEvv' for 'sm_120'
+ptxas info    : Function properties for _ZN3cub17_V_300304_SM_12006detail11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, used 0 barriers
+ptxas info    : Compile time = 0.584 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  test_reduction.cu reduction.o -o test_reduction
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  bench_reduction.cu reduction.o -o bench_reduction
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/cub_reduction'
