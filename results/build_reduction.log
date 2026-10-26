@@ -12,7 +12,7 @@ ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
 ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 16 registers, used 1 barriers
-ptxas info    : Compile time = 3.487 ms
+ptxas info    : Compile time = 3.318 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=1 test_reduction.cu reduction.o -o test_reduction
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=1 bench_reduction.cu reduction.o -o bench_reduction
@@ -32,7 +32,7 @@ ptxas info    : Compiling entry function '_Z9ReductionPKfPfi' for 'sm_120'
 ptxas info    : Function properties for _Z9ReductionPKfPfi
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 14 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 3.364 ms
+ptxas info    : Compile time = 3.249 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=1 test_reduction.cu reduction.o -o test_reduction
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=1 bench_reduction.cu reduction.o -o bench_reduction
@@ -52,7 +52,7 @@ ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
 ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 12 registers, used 1 barriers, 1024 bytes smem
-ptxas info    : Compile time = 2.896 ms
+ptxas info    : Compile time = 2.688 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=256 -DCOARSE_FACTOR=1 test_reduction.cu reduction.o -o test_reduction
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=256 -DCOARSE_FACTOR=1 bench_reduction.cu reduction.o -o bench_reduction
@@ -72,7 +72,7 @@ ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
 ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 22 registers, used 1 barriers, 1024 bytes smem
-ptxas info    : Compile time = 3.171 ms
+ptxas info    : Compile time = 3.049 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=256 -DCOARSE_FACTOR=2 test_reduction.cu reduction.o -o test_reduction
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=256 -DCOARSE_FACTOR=2 bench_reduction.cu reduction.o -o bench_reduction
@@ -92,7 +92,7 @@ ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
 ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 26 registers, used 1 barriers, 1024 bytes smem
-ptxas info    : Compile time = 3.379 ms
+ptxas info    : Compile time = 3.658 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=256 -DCOARSE_FACTOR=4 test_reduction.cu reduction.o -o test_reduction
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=256 -DCOARSE_FACTOR=4 bench_reduction.cu reduction.o -o bench_reduction
@@ -112,7 +112,7 @@ ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
 ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 24 registers, used 1 barriers, 1024 bytes smem
-ptxas info    : Compile time = 4.401 ms
+ptxas info    : Compile time = 4.294 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=256 -DCOARSE_FACTOR=8 test_reduction.cu reduction.o -o test_reduction
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=256 -DCOARSE_FACTOR=8 bench_reduction.cu reduction.o -o bench_reduction
@@ -132,7 +132,7 @@ ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
 ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 26 registers, used 1 barriers, 1024 bytes smem
-ptxas info    : Compile time = 6.621 ms
+ptxas info    : Compile time = 5.847 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=256 -DCOARSE_FACTOR=16 test_reduction.cu reduction.o -o test_reduction
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=256 -DCOARSE_FACTOR=16 bench_reduction.cu reduction.o -o bench_reduction
@@ -152,7 +152,7 @@ ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
 ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 14 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 2.763 ms
+ptxas info    : Compile time = 2.676 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=1 test_reduction.cu reduction.o -o test_reduction
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=1 bench_reduction.cu reduction.o -o bench_reduction
@@ -172,7 +172,7 @@ ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
 ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
 ptxas info    : Used 14 registers, used 1 barriers, 2048 bytes smem
-ptxas info    : Compile time = 2.960 ms
+ptxas info    : Compile time = 2.769 ms
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=2 test_reduction.cu reduction.o -o test_reduction
 ptxas info    : 0 bytes gmem
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=2 bench_reduction.cu reduction.o -o bench_reduction
@@ -187,7 +187,192 @@ make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_
 === ch10/coarsened_reduction -DBLOCK_DIM=512 -DCOARSE_FACTOR=4 ===
 make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
 nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=4 -c reduction.cu -o reduction.o
-
-Compilation terminated.
-nvcc error   : 'cudafe++' died due to signal 2 
-make: *** [../../common.mk:18: reduction.o] Error 2
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
+ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 22 registers, used 1 barriers, 2048 bytes smem
+ptxas info    : Compile time = 3.435 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=4 test_reduction.cu reduction.o -o test_reduction
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=4 bench_reduction.cu reduction.o -o bench_reduction
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+=== ch10/coarsened_reduction -DBLOCK_DIM=512 -DCOARSE_FACTOR=8 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=8 -c reduction.cu -o reduction.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
+ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 24 registers, used 1 barriers, 2048 bytes smem
+ptxas info    : Compile time = 4.253 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=8 test_reduction.cu reduction.o -o test_reduction
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=8 bench_reduction.cu reduction.o -o bench_reduction
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+=== ch10/coarsened_reduction -DBLOCK_DIM=512 -DCOARSE_FACTOR=16 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=16 -c reduction.cu -o reduction.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
+ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 24 registers, used 1 barriers, 2048 bytes smem
+ptxas info    : Compile time = 6.804 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=16 test_reduction.cu reduction.o -o test_reduction
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=512 -DCOARSE_FACTOR=16 bench_reduction.cu reduction.o -o bench_reduction
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+=== ch10/coarsened_reduction -DBLOCK_DIM=1024 -DCOARSE_FACTOR=1 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=1 -c reduction.cu -o reduction.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
+ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 10 registers, used 1 barriers, 4096 bytes smem
+ptxas info    : Compile time = 2.886 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=1 test_reduction.cu reduction.o -o test_reduction
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=1 bench_reduction.cu reduction.o -o bench_reduction
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+=== ch10/coarsened_reduction -DBLOCK_DIM=1024 -DCOARSE_FACTOR=2 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=2 -c reduction.cu -o reduction.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
+ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 14 registers, used 1 barriers, 4096 bytes smem
+ptxas info    : Compile time = 3.029 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=2 test_reduction.cu reduction.o -o test_reduction
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=2 bench_reduction.cu reduction.o -o bench_reduction
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+=== ch10/coarsened_reduction -DBLOCK_DIM=1024 -DCOARSE_FACTOR=4 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=4 -c reduction.cu -o reduction.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
+ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 22 registers, used 1 barriers, 4096 bytes smem
+ptxas info    : Compile time = 3.171 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=4 test_reduction.cu reduction.o -o test_reduction
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=4 bench_reduction.cu reduction.o -o bench_reduction
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+=== ch10/coarsened_reduction -DBLOCK_DIM=1024 -DCOARSE_FACTOR=8 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=8 -c reduction.cu -o reduction.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
+ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 22 registers, used 1 barriers, 4096 bytes smem
+ptxas info    : Compile time = 4.036 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=8 test_reduction.cu reduction.o -o test_reduction
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=8 bench_reduction.cu reduction.o -o bench_reduction
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+=== ch10/coarsened_reduction -DBLOCK_DIM=1024 -DCOARSE_FACTOR=16 ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=16 -c reduction.cu -o reduction.o
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z9ReductionPKfPfS1_i' for 'sm_120'
+ptxas info    : Function properties for _Z9ReductionPKfPfS1_i
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 21 registers, used 1 barriers, 4096 bytes smem
+ptxas info    : Compile time = 6.087 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=16 test_reduction.cu reduction.o -o test_reduction
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v -DBLOCK_DIM=1024 -DCOARSE_FACTOR=16 bench_reduction.cu reduction.o -o bench_reduction
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/coarsened_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/cub_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/cub_reduction'
+=== ch10/cub_reduction  ===
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/cub_reduction'
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  -c reduction.cu -o reduction.o
+ptxas info    : 65 bytes gmem
+ptxas info    : Compiling entry function '_ZN3cub17_V_300304_SM_12006detail6reduce28DeviceReduceSingleTileKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPfSB_iS9_ffNS7_8identityEEEvT0_T1_T2_T3_T4_T6_' for 'sm_120'
+ptxas info    : Function properties for _ZN3cub17_V_300304_SM_12006detail6reduce28DeviceReduceSingleTileKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPfSB_iS9_ffNS7_8identityEEEvT0_T1_T2_T3_T4_T6_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 39 registers, used 1 barriers, 84 bytes smem
+ptxas info    : Compile time = 27.133 ms
+ptxas info    : Compiling entry function '_ZN3cub17_V_300304_SM_12006detail6reduce18DeviceReduceKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPKfjS9_fNS7_8identityEEEvT0_PT3_T1_NS0_13GridEvenShareISH_EET2_T4_' for 'sm_120'
+ptxas info    : Function properties for _ZN3cub17_V_300304_SM_12006detail6reduce18DeviceReduceKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPKfjS9_fNS7_8identityEEEvT0_PT3_T1_NS0_13GridEvenShareISH_EET2_T4_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 36 registers, used 1 barriers, 84 bytes smem
+ptxas info    : Compile time = 20.548 ms
+ptxas info    : Compiling entry function '_ZN3cub17_V_300304_SM_12006detail6reduce28DeviceReduceSingleTileKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPKfPfjS9_ffNS7_8identityEEEvT0_T1_T2_T3_T4_T6_' for 'sm_120'
+ptxas info    : Function properties for _ZN3cub17_V_300304_SM_12006detail6reduce28DeviceReduceSingleTileKernelINS2_26policy_selector_from_typesIfjN4cuda3std3__44plusIvEEEEPKfPfjS9_ffNS7_8identityEEEvT0_T1_T2_T3_T4_T6_
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 39 registers, used 1 barriers, 84 bytes smem
+ptxas info    : Compile time = 22.064 ms
+ptxas info    : Compiling entry function '_ZN3cub17_V_300304_SM_12006detail11EmptyKernelIvEEvv' for 'sm_120'
+ptxas info    : Function properties for _ZN3cub17_V_300304_SM_12006detail11EmptyKernelIvEEvv
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 4 registers, used 0 barriers
+ptxas info    : Compile time = 0.651 ms
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  test_reduction.cu reduction.o -o test_reduction
+ptxas info    : 0 bytes gmem
+nvcc -arch=native -O2 -std=c++17 -lineinfo -I../../utils --ptxas-options=-v  bench_reduction.cu reduction.o -o bench_reduction
+ptxas info    : 0 bytes gmem
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/cub_reduction'
+make: Entering directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/cub_reduction'
+rm -f test_reduction bench_reduction *.o
+make: Leaving directory '/home/edouard/projets/pmpp-cuda-kernels/ch10/cub_reduction'
