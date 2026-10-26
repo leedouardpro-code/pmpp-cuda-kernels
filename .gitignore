@@ -24,3 +24,5 @@ __pycache__/
 utils/clock_probe
 results/ncu/
 results/ncu_reduction/
+!**/test_*.cpp
+!**/bench_*.cpp
