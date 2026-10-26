@@ -65,10 +65,10 @@ run() {
 start=$SECONDS
 # ---- Variants: adapt the folder names to your repository ----
 run ch10/simple_reduction     "-DBLOCK_DIM=512 -DCOARSE_FACTOR=1"
-run ch10/reduction_shared     "-DBLOCK_DIM=512 -DCOARSE_FACTOR=1"
+run ch10/shared_reduction     "-DBLOCK_DIM=512 -DCOARSE_FACTOR=1"
 for b in 256 512 1024; do
   for c in 1 2 4 8 16; do
-    run ch10/reduction_coarsened "-DBLOCK_DIM=$b -DCOARSE_FACTOR=$c"
+    run ch10/coarsened_reduction "-DBLOCK_DIM=$b -DCOARSE_FACTOR=$c"
   done
 done
 run ch10/cub_reduction ""
