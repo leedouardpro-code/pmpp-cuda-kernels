@@ -2,8 +2,9 @@
 
 **Hand-written CUDA kernels from *Programming Massively Parallel Processors*, tested, measured and compared with NVIDIA's libraries on an RTX 5060 Laptop GPU.**
 
-> **Summary.** *Programming Massively Parallel Processors* (PMPP, 4th ed.) teaches GPU programming through a sequence of kernels and optimization techniques. This repository implements those kernels from scratch and asks a question the book only partly answers: *how much does each technique actually gain on a modern GPU, and why?* Every kernel is first checked for correctness, then timed with a statistical benchmark, compared with the hardware limits and with NVIDIA's own library (cuBLAS), and the results are explained with the hardware model and the Nsight Compute profiler.
+> **Summary.** *Programming Massively Parallel Processors* (PMPP, 4th ed.) teaches GPU programming through a sequence of kernels and optimization techniques. This repository implements those kernels from scratch and asks a question the book only partly answers: *how much does each technique actually gain on a modern GPU, and why?* Every kernel is first checked for correctness, then timed with a statistical benchmark, compared with the hardware limits and with NVIDIA's own libraries (cuBLAS, CUB), and the results are explained with the hardware model and the Nsight Compute profiler.
 > The two memory-bound kernels reach **87-90 % of the theoretical DRAM bandwidth**. For matrix multiplication, the techniques of chapters 5-6 bring a **1.9× speedup** over the naive kernel but stay at **15 % of cuBLAS**, in line with an independent published study. The profiler shows why: these techniques reduce traffic to off-chip memory, whereas the bottleneck has moved to the on-chip load/store pipeline that feeds shared memory. Acting on this diagnosis with register tiling, each thread keeping reused values in registers, brings the hand-written kernel to **55 % of cuBLAS (3.8× faster than the best chapter 6 kernel)**.
+> For **parallel reduction** (chapter 10), the book's successive techniques take a sum of 2²⁶ floats from 39 % to **95 % of DRAM bandwidth (2.4×), the same limit as NVIDIA's CUB library**; the profiler's memory-request counts match a prediction made from the code within 1 % and show which cost each technique removes.
 
 ## Contents
 
@@ -12,11 +13,12 @@
 3. [Methodology: correctness, timing, clock](#3-methodology-correctness-timing-clock)
 4. [Memory-bound kernels: how close to the bandwidth limit?](#4-memory-bound-kernels-how-close-to-the-bandwidth-limit)
 5. [Matrix multiplication: testing the PMPP techniques against cuBLAS](#5-matrix-multiplication-testing-the-pmpp-techniques-against-cublas)
-6. [Conclusion and next steps](#6-conclusion-and-next-steps)
-7. [Reproducing the results](#7-reproducing-the-results)
-8. [Repository layout](#8-repository-layout)
-9. [Chapter notes and exercises](#9-chapter-notes-and-exercises)
-10. [References](#10-references)
+6. [Parallel reduction: from the reduction tree to CUB](#6-parallel-reduction-from-the-reduction-tree-to-cub)
+7. [Conclusion and next steps](#7-conclusion-and-next-steps)
+8. [Reproducing the results](#8-reproducing-the-results)
+9. [Repository layout](#9-repository-layout)
+10. [Chapter notes and exercises](#10-chapter-notes-and-exercises)
+11. [References](#11-references)
 
 ---
 
@@ -30,7 +32,7 @@ This repository therefore goes one step beyond implementing the book's kernels. 
 2. **How fast is it, and how reliable is that number?** Measured with a statistical benchmark on a laptop GPU whose clock depends on its power mode.
 3. **How good is it, and why?** Compared with the hardware limits, with NVIDIA's library, and with published results; explained with the hardware model and profiler counters.
 
-**Scope.** Chapters 2 to 6 of PMPP: element-wise kernels (vector addition, image conversion) and matrix multiplication. Reductions (chapter 10) and further profiling are the next steps ([section 6](#6-conclusion-and-next-steps)). All kernels are written by hand; the cuBLAS folder is the vendor reference used for comparison.
+**Scope.** Chapters 2 to 6 and 10 of PMPP: element-wise kernels (vector addition, image conversion), matrix multiplication and parallel reduction. All kernels are written by hand; the cuBLAS and CUB folders are the vendor references used for comparison. Open questions and next steps are listed in [section 7](#7-conclusion-and-next-steps).
 
 The next section introduces the few hardware notions needed to read the results.
 
@@ -56,11 +58,11 @@ This section summarizes, with the vocabulary of PMPP, the notions needed to read
 
 A kernel well below 48 FLOP/B is **memory-bound**: its throughput is at most the bandwidth times its ratio. A kernel well above is **compute-bound**. This is the *roofline model*. The 2.75 GHz clock is measured, not taken from the specification sheet ([section 3](#3-methodology-correctness-timing-clock)).
 
-The two kernel families studied here sit on opposite sides of the ridge point: element-wise kernels ([section 4](#4-memory-bound-kernels-how-close-to-the-bandwidth-limit)) are memory-bound, matrix multiplication ([section 5](#5-matrix-multiplication-testing-the-pmpp-techniques-against-cublas)) is compute-bound in principle. Before looking at them, the next section describes how correctness and speed are established.
+The kernels studied here sit on both sides of the ridge point: element-wise kernels ([section 4](#4-memory-bound-kernels-how-close-to-the-bandwidth-limit)) and reductions ([section 6](#6-parallel-reduction-from-the-reduction-tree-to-cub)) are memory-bound, matrix multiplication ([section 5](#5-matrix-multiplication-testing-the-pmpp-techniques-against-cublas)) is compute-bound in principle. Before looking at them, the next section describes how correctness and speed are established.
 
 ## 3. Methodology: correctness, timing, clock
 
-A performance number is only meaningful if the kernel is correct and the measurement is reproducible. This section describes the protocol applied to every kernel; the results in sections 4 and 5 all follow it.
+A performance number is only meaningful if the kernel is correct and the measurement is reproducible. This section describes the protocol applied to every kernel; the results in sections 4 to 6 all follow it.
 
 ### 3.1 Correctness before speed
 
@@ -163,7 +165,7 @@ The best chapter 5-6 kernel is **1.9× faster than the naive one** at n = 4096, 
 
 **Tiling helps, but much less than the reduction in memory traffic would suggest.** A 16×16 tile divides global-memory traffic by 16, yet the speedup over the naive kernel is only 1.37× at n = 2048. The naive kernel was therefore not limited by DRAM, contrary to what the book's model predicts: at 0.25 FLOP/B and 384 GB/s it would be capped at 96 GFLOP/s, yet it reaches 1,084 GFLOP/s, eleven times more. Its redundant reads are served by the caches, which PMPP's model does not include (Nsight Compute measures a **95 % L1 hit rate**, [section 5.4](#54-what-the-profiler-shows)). The exception confirms the rule: at n = 4096, a single matrix (64 MiB) no longer fits in the 32 MiB L2 cache, and the naive kernel loses 29 % of its throughput, while the tiled kernels lose 3-11 % and cuBLAS nothing.
 
-**A larger tile is slower.** A 32×32 tile halves global traffic again compared with 16×16, but is 4 % slower at n = 2048 and 12 % slower at n = 4096. Both tile sizes perform exactly the same amount of shared-memory work, so the difference must come from how well that work is overlapped. A 32×32 tile requires blocks of 1,024 threads, and only one such block fits on an SM (limit: 1,536 threads), so only 32 of the 48 warp slots are used (67 % occupancy, confirmed by the profiler). With 16×16 tiles, six independent blocks of 256 threads share the SM (100 % occupancy), and the profiler shows that they keep the load/store pipeline busy 97 % of the time, against 76 % for the 32×32 tile. With fewer resident warps, the 32×32 tile has less *latency tolerance* in PMPP's sense (section 4.6): fewer ready warps to schedule while others wait. This again shows that global traffic is not the limiting factor. *(Before profiling, the expected cause was that the 32 warps of the single block stall together at the `__syncthreads()` barriers; the profiler does not support it: barrier stalls are lower with the 32×32 tile. The exact mechanism of the lower pipeline utilization remains open, see section 6.)*
+**A larger tile is slower.** A 32×32 tile halves global traffic again compared with 16×16, but is 4 % slower at n = 2048 and 12 % slower at n = 4096. Both tile sizes perform exactly the same amount of shared-memory work, so the difference must come from how well that work is overlapped. A 32×32 tile requires blocks of 1,024 threads, and only one such block fits on an SM (limit: 1,536 threads), so only 32 of the 48 warp slots are used (67 % occupancy, confirmed by the profiler). With 16×16 tiles, six independent blocks of 256 threads share the SM (100 % occupancy), and the profiler shows that they keep the load/store pipeline busy 97 % of the time, against 76 % for the 32×32 tile. With fewer resident warps, the 32×32 tile has less *latency tolerance* in PMPP's sense (section 4.6): fewer ready warps to schedule while others wait. This again shows that global traffic is not the limiting factor. *(Before profiling, the expected cause was that the 32 warps of the single block stall together at the `__syncthreads()` barriers; the profiler does not support it: barrier stalls are lower with the 32×32 tile. The exact mechanism of the lower pipeline utilization remains open, see section 7.)*
 
 **Thread coarsening gives a small gain:** +5 % with factor 2 and +7 % with factor 4 at n = 2048, for 16×16 tiles. Sections [5.4](#54-what-the-profiler-shows) and [5.5](#55-why-coarsening-gains-little-comparison-with-a-published-study) explain why the gain is small. As a sanity check, coarsening with factor 1 reproduces the plain tiled kernel (1,474 vs 1,482 GFLOP/s), so the coarsened code adds no overhead and the measurements are consistent.
 
@@ -287,14 +289,115 @@ Targeting the bottleneck identified by the profiler gives a 3-4× speedup, where
 
 **Conclusion of section 5.** The PMPP techniques were measured one by one: tiling and coarsening give a combined 1.9× speedup, consistent with an independent study, but leave the kernel at 15 % of cuBLAS. The profiler shows that the bottleneck has moved from global memory to the load/store pipeline feeding shared memory, that neither tile size nor coarsening changes the shared-memory work, and that cuBLAS removes this bottleneck with register tiling. Applying the same idea to the chapter 5 kernel confirms the diagnosis: register tiling divides the shared-memory work by 4 as predicted, relieves the load/store pipe (61 % instead of 97 %), quadruples the activity of the arithmetic units, and brings the hand-written kernel from 15 % to 55 % of cuBLAS.
 
-## 6. Conclusion and next steps
+## 6. Parallel reduction: from the reduction tree to CUB
 
-This repository implemented the kernels of PMPP chapters 2-6 and measured them with a protocol designed for a laptop GPU (correctness tests, statistical timing, measured clock). Four conclusions emerge:
+A *reduction* derives a single value from an array; here, the sum of n floats (PMPP ch. 10). It performs n − 1 additions on 4n bytes, 0.25 FLOP/B: like the kernels of section 4 it is memory-bound, and the target is again the DRAM bandwidth. Unlike them, its threads must cooperate. Partial sums are combined along a *reduction tree* (PMPP 10.2): at each step, half of the remaining threads add a partner's value to their own, and a barrier (`__syncthreads()`) separates the steps. The number of active threads therefore halves at every step. PMPP chapter 10 builds the kernel in successive steps, each removing a cost of the previous one. This section measures each step, compares the result with NVIDIA's CUB library, and uses profiler counters to check that each step removes the cost it targets.
+
+### 6.1 Kernels studied
+
+All hand-written kernels use PMPP's *segmented multiblock reduction* (section 10.7). Block b reduces its own segment of SEGMENT_SIZE = 2 · BLOCK_DIM · COARSE_FACTOR consecutive elements, then one thread of the block adds the block's partial sum to the result with `atomicAdd`. Elements beyond n count as 0, the *identity value* of addition.
+
+| Kernel | PMPP | Idea |
+|---|---|---|
+| **Simple** ([`ch10/simple_reduction`](ch10/simple_reduction)) | fig. 10.6 | Each thread owns two elements, at index i = 2 · `threadIdx.x` within the segment (*owner computes*). At step s = 1, 2, 4, …, the threads whose index is a multiple of s add the element s positions further to their own. The tree runs in global memory, on a copy of the segment in a scratch array (the input is read-only). |
+| **Shared** ([`ch10/shared_reduction`](ch10/shared_reduction)) | fig. 10.9, 10.11, 10.13 | Two changes. *Convergent* arrangement (10.4): the stride starts at BLOCK_DIM / 2 and halves at each step, and thread t adds element t + stride to element t, so the active threads stay contiguous (threads 0 to stride − 1). *Shared memory* (10.6): each thread first adds `input[i]` and `input[i + BLOCK_DIM]` from global memory, then the tree runs on BLOCK_DIM values in shared memory. |
+| **Coarsened** ([`ch10/coarsened_reduction`](ch10/coarsened_reduction)) | fig. 10.15 | *Thread coarsening* (10.8): before the tree, each thread adds 2 · COARSE_FACTOR elements serially in a register, at addresses BLOCK_DIM apart so that every load is coalesced. The tree then runs once per 2 · BLOCK_DIM · COARSE_FACTOR elements instead of once per 2 · BLOCK_DIM. |
+| **CUB** ([`ch10/cub_reduction`](ch10/cub_reduction)) | — | `cub::DeviceReduce::Sum`, NVIDIA's library implementation, used as the reference. |
+
+The convergent kernel of fig. 10.9 (convergent tree, still in global memory) was not implemented separately: the shared kernel combines two changes, which section 6.3 separates with profiler counters rather than with an additional kernel.
+
+**Correctness and timing.** The four kernels share one test ([`test_reduction.cu`](ch10/simple_reduction/test_reduction.cu)) on 18 sizes from 1 to 2²⁶ + 3, including sizes that leave a partial last segment. The inputs are 0 or 1, drawn so that every partial sum is an integer below 2²⁴, which FP32 represents exactly. The GPU result must then equal the CPU count *exactly*, whatever the order of the additions, so a single missing, duplicated or out-of-bounds element fails the test. A second test on random floats checks the accuracy against a double-precision sum. The timed region is one complete sum: for the hand-written kernels, the reset of the result to 0 (`cudaMemsetAsync`, required by `atomicAdd`) and the kernel; for CUB, its two kernels ([section 6.4](#64-what-cub-does-differently)). Throughput is reported as effective bandwidth, 4n bytes divided by time: the bytes a sum must read at least once.
+
+### 6.2 Results
+
+![Reduction bandwidth vs input size](results/reduction_gbps.png)
+
+| Kernel (BLOCK_DIM, COARSE_FACTOR) | n = 2²⁴ (64 MiB) | n = 2²⁶ (256 MiB) | % of 384 GB/s (n = 2²⁶) | Speedup over simple (n = 2²⁶) |
+|---|---|---|---|---|
+| Simple (512) | 148.5 GB/s | 151.6 GB/s | 39 % | 1.0× |
+| Shared (512) | 218.3 GB/s | 234.1 GB/s | 61 % | 1.5× |
+| **Coarsened (512, ×16)** | 350.5 GB/s | **366.4 GB/s** | **95 %** | **2.4×** |
+| CUB | 352.8 GB/s | 334.5 GB/s | 87 % | 2.2× |
+
+Median of 30 runs. All measurements: [`results/sweep_reduction.csv`](results/sweep_reduction.csv) and [`results/reduction_table.md`](results/reduction_table.md); the measured clock was 2,736 MHz before and after the sweep ([`results/env_reduction.txt`](results/env_reduction.txt)).
+
+Each PMPP step brings a large gain, and the coarsened kernel reaches 95 % of the DRAM peak. In this sweep it is 10 % faster than CUB at n = 2²⁶, but this lead is **not** significant, as the comparison of two sweeps shows.
+
+**Reproducibility: two complete sweeps.** The whole sweep was run twice, on the same day, at the same measured clock. For the configurations that do not saturate DRAM (shared, coarsened with factor 1, coarsened with 1,024 threads and factor 2 or 4), the two sweeps agree within 2 %. For the configurations that reach the DRAM limit, they do not: the same configuration measures either about 344 or about 366 GB/s depending on the sweep (for example 256 threads × 4: 344.4 then 366.3 GB/s; 512 × 16: 342.5 then 366.4), and CUB measures 365.9 then 334.5 GB/s. Within one sweep, the 30 runs of a configuration are consistent (standard deviation mostly 1-4 % of the median), so these are differences between program launches, not between runs. Their cause has not been identified. The conclusion that the data support is therefore: **the best coarsened configurations and CUB both run at the DRAM limit, between 87 and 95 % of the peak**; the data do not support ranking them. One other measurement differs: the simple kernel at n = 2²⁶ was 19 % slower in the first sweep (123.0 GB/s, all 30 repetitions slow), whereas the two sweeps agree within 2 % for it at n = 2²⁴; the second sweep agrees with the profiled duration (section 6.3) and is the one reported.
+
+The sizes 2²⁰ and 2²² were also measured but are not interpreted. Their inputs (4 and 16 MiB) fit in the 32 MiB L2 cache, so the DRAM limit does not apply (CUB and the coarsened kernel reach about 800 GB/s at 2²², twice the DRAM peak). A sum then takes only 10 to 50 µs, so the fixed cost of the launches weighs heavily, and the standard deviation exceeds 20 % of the median for most kernels at n = 2²⁰.
+
+### 6.3 What each step changes: profiler counters
+
+Each kernel was profiled with Nsight Compute at n = 2²⁶ with BLOCK_DIM = 512 (coarsened kernel with COARSE_FACTOR = 4, 364.0 GB/s, within 1 % of the best configuration; for CUB, its main kernel). Script [`scripts/profile_reduction.sh`](scripts/profile_reduction.sh), summary [`results/ncu_reduction.md`](results/ncu_reduction.md).
+
+| Metric (n = 2²⁶) | Simple | Shared | Coarsened (512, ×4) | CUB (main kernel) |
+|---|---|---|---|---|
+| Duration of the profiled launch (ms) | 1.714 | 1.167 | 0.728 | 0.779 |
+| DRAM throughput (% of peak) | 80.0 | **60.3** | **96.5** | 98.6 |
+| Active threads per warp instruction (of 32) | **25.3** | 31.9 | 31.9 | 31.9 |
+| Global load requests (millions) | 16.7 | 2.1 | 2.1 | 1.0 |
+| Global load sectors (millions) | **83.8** | 8.4 | 8.4 | 8.4 |
+| Global store sectors (millions) | **50.3** | 0 | 0 | 0 |
+| Sectors per load request (4 = fully coalesced) | 5.02 | 4.00 | 4.00 | 8.00 |
+| Shared-memory wavefronts (millions) | 3.7 | 31.1 | 7.8 | 0.1 |
+| Instructions executed (millions) | 208.4 | 146.0 | **37.9** | **4.8** |
+| Achieved occupancy (%) | 92.5 | 88.1 | 91.2 | 98.3 |
+| Main stall reason (cycles per instruction) | waiting for global loads (10.4) | waiting for global loads (6.4) | waiting for global loads (42.9) | waiting for global loads (489) |
+
+*How to read it.* A *request* is one global-memory load or store instruction of a warp. The memory system serves it in *sectors* of 32 bytes: a fully coalesced load of 32 consecutive floats (128 bytes) needs 4 sectors. *Active threads per warp instruction* is the average number of threads of the warp that take part in each executed instruction: 32 means no control divergence. Wavefronts and stall reasons are defined in section 5.4. The durations come from a single profiled launch and agree with the benchmark medians within 3 % (for CUB, the benchmark also includes its second kernel: 0.78 ms for the main kernel, 0.80 ms for the whole call). The argument below rests mainly on the counts (requests, sectors, instructions), which do not depend on timing and were identical in the two profiling runs.
+
+**Simple kernel: the counters follow from the code.** Requests and sectors depend only on the addresses accessed, so they can be predicted with the counting method of PMPP section 10.5, applied to the profiler's units. For one block of 512 threads (16 warps, 1,024 elements), each step of the tree is examined: which warps have at least one active thread, and how many 32-byte sectors their addresses touch. For example, at step s = 4 only the threads whose index is a multiple of 4 are active, 8 per warp; their elements are 8 floats (32 bytes) apart, so each of them touches its own sector: 8 sectors for 8 useful floats. Summed over the copy into scratch and the 10 steps of the tree, and multiplied by the 65,536 blocks:
+
+| | Predicted from the code | Measured |
+|---|---|---|
+| Global load requests | 254 per block → 16.6 M | 16.7 M |
+| Global load sectors | 1,278 per block → 83.8 M | 83.8 M |
+| Global store sectors | 767 per block → 50.3 M | 50.3 M |
+
+These counts make the three costs that PMPP attributes to this kernel measurable:
+
+1. **Redundant global-memory traffic** (PMPP 10.6). The kernel requests 10 times more sectors than the input contains (83.8 M against 8.4 M) and also writes 50.3 M. Most of this traffic is served by the caches, since a segment is only 4 KiB, but the copy into the scratch array (256 MiB, eight times the L2 cache) must eventually be written to DRAM. Prediction: DRAM traffic about twice the input, read once and written once. Measured: 80 % of 384 GB/s for 1.714 ms is 527 MB, 1.96 times the 268 MB input. This alone caps the effective bandwidth of this kernel at 384 / 2 = 192 GB/s; it reaches 151.6 GB/s, 79 % of this cap.
+2. **Memory divergence** (PMPP 10.5). In the tree, the active threads of a warp access elements s positions apart, so a request touches sectors that are mostly unused (5.02 sectors per request on average, against 4 for a fully coalesced warp that uses every byte).
+3. **Control divergence** (PMPP 10.3-10.4). Within a warp, the active threads are not contiguous, so every warp keeps executing the tree with only part of its threads: 25.3 active threads per instruction on average.
+
+**Shared kernel: minimal traffic, but DRAM is not kept busy.** The shared kernel reads exactly the input, once, with fully coalesced loads (8.4 M sectors = 268 MB, 4 sectors per request) and writes nothing to global memory (only one `atomicAdd` per block). With the convergent arrangement, whole warps become idle instead of partially active ones, and the active threads per instruction rise to 31.9. Yet DRAM is busy only 60.3 % of the time. The cost has moved from memory traffic to the tree itself: each thread loads its two elements, then the block spends 9 steps, each with a barrier, on a tree in which fewer and fewer warps work. During these steps the block issues no global loads. PMPP 10.8 calls this the price of distributing the work over many blocks: the underutilized steps of the tree are paid "for every thread block that we launch". The kernel executes 146 M instructions, 2.2 per element of the input.
+
+**Coarsened kernel: the tree is amortized.** If the tree dominates the work of the shared kernel, coarsening by 4, which runs the tree once per 4,096 elements instead of once per 1,024, should divide the tree's work by about 4 while leaving the global traffic unchanged. Measured: shared-memory wavefronts divided by 3.99 (31.1 M → 7.8 M), instructions by 3.85 (146 M → 37.9 M), and the global requests and sectors are identical. DRAM is now busy 96.5 % of the time, and the main stall reason, waiting for global loads, has grown to 42.9 cycles per instruction: warps spend their time waiting for DRAM. The kernel is limited by memory bandwidth, the expected regime for a memory-bound kernel (section 2).
+
+### 6.4 What CUB does differently
+
+CUB reaches the same limit by a different route. Its `DeviceReduce::Sum` launches two kernels (seen in the profiler): the main kernel (`DeviceReduceKernel`) writes one partial sum per block to global memory, then a single-block kernel (`DeviceReduceSingleTileKernel`) adds the partial sums. There is no `atomicAdd`, so the order of the additions is fixed: by default CUB's floating-point sum is *run-to-run deterministic* on the same GPU ([NVIDIA developer blog](https://developer.nvidia.com/blog/controlling-floating-point-determinism-in-nvidia-cccl)), whereas with `atomicAdd` the order in which blocks add their partial sums, and therefore the last bits of the result, may vary from run to run.
+
+Its main kernel executes **4.8 M instructions, 8 times fewer than the coarsened kernel**, and its loads touch 8 sectors per request: each thread loads several consecutive floats with one instruction (*vectorized loads*), which halves the number of requests (1.0 M against 2.1 M). Yet both kernels run at the DRAM limit (96.5 and 98.6 % DRAM throughput in the profiler). This is PMPP's lesson of its section 6.5 seen from the other side: once DRAM is the bottleneck, removing more instructions no longer targets the bottleneck and brings no gain.
+
+### 6.5 Choice of configuration
+
+![Coarsened kernel: bandwidth vs COARSE_FACTOR](results/reduction_coarsening.png)
+
+| BLOCK_DIM \ COARSE_FACTOR (n = 2²⁶) | 1 | 2 | 4 | 8 | 16 |
+|---|---|---|---|---|---|
+| 256 | 284.2 | 365.6 | 366.3 | 344.5 | 365.9 |
+| 512 | 243.1 | 343.4 | 364.0 | 344.3 | **366.4** |
+| 1024 | 140.1 | 261.9 | 326.1 | 340.8 | 366.2 |
+
+*Effective bandwidth in GB/s, second sweep.*
+
+- **Without coarsening (factor 1), smaller blocks are faster**: 284 GB/s with 256 threads, 243 with 512, 140 with 1,024, within 1 % in both sweeps. A larger block has a longer tree (log₂ BLOCK_DIM steps) during which it issues no loads. With 1,024-thread blocks, a single block fits on an SM (limit: 1,536 threads), so when that block is in its tree, no other block is there to keep loading; with 256-thread blocks, six independent blocks share the SM and overlap their phases. This is the same occupancy argument as for the 32 × 32 tile in section 5.3 (here deduced from the limits, not profiled).
+- **Coarsening removes this difference.** The larger the block, the more coarsening it needs to reach the DRAM limit: factor 2 for 256 threads, 4 for 512, 16 for 1,024 (326 GB/s with factor 4, 341 with 8). In other words, a block must handle a large enough segment for the tree to become a small part of its work.
+- **Within the plateau, configurations cannot be ranked.** The values around 344 GB/s and around 366 GB/s change places between the two sweeps (section 6.2), so any configuration of the plateau is a valid choice. PMPP 10.8 also warns that too large a factor leaves too few blocks to fill the GPU; at n = 2²⁶ even the largest segment (2 × 1,024 × 16 elements) still gives 2,048 blocks, so this limit is not reached here.
+
+**Conclusion of section 6.** The steps of PMPP chapter 10 take the sum from 39 % to 95 % of the DRAM bandwidth (2.4×), to the DRAM limit, where NVIDIA's CUB also runs (87-95 % over two sweeps). The profiler counters follow the book's analysis closely: for the simple kernel, the request and sector counts predicted from the code match the measurement within 1 %, and show its redundant traffic, memory divergence and control divergence; the shared kernel reads the minimum but leaves DRAM idle during its tree; coarsening divides the tree's work by 4 as predicted and makes the kernel bandwidth-bound. CUB reaches the same limit with 8 times fewer instructions, a reminder that once the bottleneck is reached, further optimization of other resources brings nothing.
+
+## 7. Conclusion and next steps
+
+This repository implemented the kernels of PMPP chapters 2-6 and 10 and measured them with a protocol designed for a laptop GPU (correctness tests, statistical timing, measured clock). Five conclusions emerge:
 
 1. **Memory-bound kernels** are close to the hardware limit (87-90 % of DRAM bandwidth) with the book's straightforward implementations.
 2. **For matrix multiplication**, tiling and coarsening bring a 1.9× speedup but stay at 15 % of cuBLAS, in agreement with an independent published study.
 3. **The reason**, confirmed with Nsight Compute, is that these techniques reduce global memory traffic, whereas the bottleneck is the load/store pipeline feeding shared memory (busy 97 % of the time, against 10 % for the arithmetic units). This is PMPP's lesson of section 6.5 measured on real hardware: an optimization helps only if it targets the bottleneck resource, and finding that resource requires the profiler.
 4. **Acting on the diagnosis works**: register tiling, which targets this bottleneck, divides the shared-memory work by 4, relieves the load/store pipe (61 %), quadruples the activity of the arithmetic units and brings the kernel from 15 % to 55 % of cuBLAS.
+5. **For parallel reduction**, the techniques of chapter 10 (convergent tree, shared memory, segmented multiblock reduction with atomics, thread coarsening) take the kernel from 39 % to 95 % of DRAM bandwidth, the same limit as CUB. Profiler counters match a request count predicted from the code within 1 % and show which cost each step removes.
 
 Some questions remain open, and some techniques of the book remain to be studied. Planned work, in order of priority:
 
@@ -302,12 +405,14 @@ Some questions remain open, and some techniques of the book remain to be studied
 - [ ] **Explain the lower pipe utilization of the 32×32 tile** (76 % vs 97 %, same shared-memory work); the barrier-stall hypothesis was not supported.
 - [ ] **Measure DRAM traffic per kernel** (the DRAM counters were not collected in this run) to quantify the L2 effect on the naive kernel at n = 4096.
 - [ ] **Explain the 4 % gap of `color2gray`** with the profiler, and test a planar (structure-of-arrays) RGB layout.
-- [ ] **Parallel reduction** (PMPP ch. 10): reduction tree with control divergence, convergent version (less control and memory divergence), shared memory, segmented multiblock reduction with atomics, thread coarsening, plus warp shuffles; compared with NVIDIA's CUB library.
+- [x] **Parallel reduction** (PMPP ch. 10): simple, shared and coarsened kernels compared with CUB; 95 % of DRAM bandwidth ([section 6](#6-parallel-reduction-from-the-reduction-tree-to-cub)).
+- [ ] **Complete the reduction study**: the convergent kernel of fig. 10.9 in global memory, to separate the effect of the convergent arrangement from that of shared memory; explain the shared-memory wavefront count of the shared kernel (about 470 per block, where counting only the warps with active threads gives about 80; possibly the compiler predicating the short `if` body, to check in the machine code); identify the cause of the 6-9 % differences between two sweeps for the configurations at the DRAM limit (section 6.2).
+- [ ] **Warp-level reduction** (beyond PMPP ch. 10): the last steps of the tree with warp shuffle instructions instead of shared memory and barriers.
 - [ ] **Roofline plot** of all kernels from profiler counters.
 - [x] **Register tiling for SGEMM** (1D and 2D): 44 % and 55 % of cuBLAS ([section 5.7](#57-testing-the-diagnosis-register-tiling-beyond-pmpp)).
 - [ ] **Close more of the gap to cuBLAS**: coalesced tile loading in the 2D kernel (neighbouring threads loading neighbouring columns), removing bank conflicts, overlapping the loading of the next tiles with computation.
 
-## 7. Reproducing the results
+## 8. Reproducing the results
 
 Requirements: an NVIDIA GPU, CUDA toolkit ≥ 12.8 (needed for Blackwell `sm_120`), GNU Make, and Python 3 with `pandas` and `matplotlib` for the figures. Kernels are built for the local GPU (`-arch=native`); use `make ARCH=sm_XX` to target another architecture.
 
@@ -323,11 +428,17 @@ scripts/sweep_matmul.sh                # all SGEMM variants x 4 sizes -> results
 python3 scripts/plot_matmul.py         # tables and figures in results/
 scripts/profile_matmul.sh              # Nsight Compute profiles (needs GPU counter access)
 python3 scripts/summarize_ncu.py       # -> results/ncu_matmul.md
+
+make -C ch10/coarsened_reduction EXTRA="-DBLOCK_DIM=256 -DCOARSE_FACTOR=2" clean test bench
+scripts/sweep_reduction.sh             # all reduction variants x 4 sizes -> results/sweep_reduction.csv
+python3 scripts/plot_reduction.py      # tables and figures in results/
+scripts/profile_reduction.sh           # Nsight Compute profiles of the reduction kernels
+python3 scripts/summarize_ncu_reduction.py   # -> results/ncu_reduction.md
 ```
 
-On a laptop, connect the charger and select the highest performance mode before benchmarking ([section 3.3](#33-clock-and-power-mode-on-a-laptop)). The sweep records the measured clock before and after the run in `results/env_matmul.txt`.
+On a laptop, connect the charger and select the highest performance mode before benchmarking ([section 3.3](#33-clock-and-power-mode-on-a-laptop)). Each sweep records the measured clock before and after the run in `results/env_matmul.txt` or `results/env_reduction.txt`.
 
-## 8. Repository layout
+## 9. Repository layout
 
 Each kernel has its own folder with the same structure: `xxx.cu` (kernel, launch function and host wrapper), `test_xxx.cu` (correctness test against the CPU), `bench_xxx.cu` (benchmark), and a `Makefile` with `test`, `bench` and `clean` targets.
 
@@ -354,18 +465,27 @@ pmpp-cuda-kernels/
 ├── extra/
 │   ├── register_tiling1D/      # tiled SGEMM, each thread computes COARSE_FACTOR outputs of a column (section 5.7)
 │   └── register_tiling2D/      # tiled SGEMM, each thread computes a COARSE_FACTOR x COARSE_FACTOR block (section 5.7)
+├── ch10/                       # sum reduction (section 6); test and benchmark files shared by the four folders
+│   ├── simple_reduction/       # reduction tree in global memory (PMPP fig. 10.6), segmented with atomicAdd
+│   ├── shared_reduction/       # convergent tree in shared memory (fig. 10.9, 10.11, 10.13)
+│   ├── coarsened_reduction/    # + thread coarsening (fig. 10.15; BLOCK_DIM, COARSE_FACTOR)
+│   └── cub_reduction/          # CUB DeviceReduce::Sum reference
 ├── cublas/                     # cuBLAS SGEMM reference, same interface as the hand-written kernels
 ├── scripts/
 │   ├── sweep_matmul.sh         # builds, tests and benchmarks every SGEMM configuration
 │   ├── plot_matmul.py          # tables and figures from the sweep results
 │   ├── profile_matmul.sh       # Nsight Compute profile of the SGEMM kernels (section 5.4)
-│   └── summarize_ncu.py        # metric and stall tables from the profiles
+│   ├── summarize_ncu.py        # metric and stall tables from the profiles
+│   ├── sweep_reduction.sh      # builds, tests and benchmarks every reduction configuration
+│   ├── plot_reduction.py       # tables and figures from the reduction sweep
+│   ├── profile_reduction.sh    # Nsight Compute profile of the reduction kernels (section 6.3)
+│   └── summarize_ncu_reduction.py
 └── results/                    # raw data behind the numbers in this README
 ```
 
 </details>
 
-## 9. Chapter notes and exercises
+## 10. Chapter notes and exercises
 
 | Chapter | Topic | Code | Notes |
 |---|---|---|---|
@@ -374,13 +494,15 @@ pmpp-cuda-kernels/
 | 4 | Compute architecture and scheduling | | [exercises](ch4/README.md) |
 | 5 | Memory architecture and data locality | [`matmul_tiling`](ch5/matmul_tiling) | [exercises](ch5/README.md) |
 | 6 | Performance considerations | [`matmul_coarsening`](ch6/matmul_coarsening) | |
+| 10 | Reduction and minimizing divergence | [`simple_reduction`](ch10/simple_reduction), [`shared_reduction`](ch10/shared_reduction), [`coarsened_reduction`](ch10/coarsened_reduction) | |
 
 Code conventions: `_h` / `_d` suffixes for host / device pointers (as in the book), every CUDA API call wrapped in `CUDA_CHECK`, `cudaGetLastError()` after each kernel launch.
 
-## 10. References
+## 11. References
 
 - W. Hwu, D. Kirk, I. El Hajj, *Programming Massively Parallel Processors: A Hands-on Approach*, 4th ed., Morgan Kaufmann, 2023.
 - S. Boehm, [*How to Optimize a CUDA Matmul Kernel for cuBLAS-like Performance: a Worklog*](https://siboehm.com/articles/22/CUDA-MMM), 2022.
 - N. J. Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed., SIAM, 2002 (floating-point error bound used for the test tolerance).
 - NVIDIA, [*CUDA C++ Programming Guide*](https://docs.nvidia.com/cuda/cuda-c-programming-guide/), [*CUDA C++ Best Practices Guide*](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/), [*Nsight Compute Kernel Profiling Guide*](https://docs.nvidia.com/nsight-compute/ProfilingGuide/).
+- NVIDIA, [*CUB documentation*](https://nvidia.github.io/cccl/cub/) and [*Controlling Floating-Point Determinism in NVIDIA CCCL*](https://developer.nvidia.com/blog/controlling-floating-point-determinism-in-nvidia-cccl).
 - [GPU MODE lecture series](https://github.com/gpu-mode/lectures).
