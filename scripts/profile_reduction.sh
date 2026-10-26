@@ -32,10 +32,9 @@ profile() {
 }
 
 # ---- adapt the folder names to your repository ----
-profile simple     ch10/reduction_simple     "-DBLOCK_DIM=512 -DCOARSE_FACTOR=1" "^Reduction"
-profile convergent ch10/reduction_convergent "-DBLOCK_DIM=512 -DCOARSE_FACTOR=1" "^Reduction"
-profile shared     ch10/reduction_shared     "-DBLOCK_DIM=512 -DCOARSE_FACTOR=1" "^Reduction"
-profile coarsened  ch10/reduction_coarsened  "-DBLOCK_DIM=512 -DCOARSE_FACTOR=4" "^Reduction"
+profile simple     ch10/simple_reduction     "-DBLOCK_DIM=512 -DCOARSE_FACTOR=1" "^Reduction"
+profile shared     ch10/shared_reduction     "-DBLOCK_DIM=512 -DCOARSE_FACTOR=1" "^Reduction"
+profile coarsened  ch10/coarsened_reduction  "-DBLOCK_DIM=512 -DCOARSE_FACTOR=4" "^Reduction"
 # CUB launches two kernels per call; profile the main one (one partial sum per block)
 profile cub        ch10/cub_reduction        ""                                  "DeviceReduceKernel"
 
