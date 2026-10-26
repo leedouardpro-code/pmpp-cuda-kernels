@@ -1,21 +1,21 @@
-date    : 2026-10-26T14:02:34+08:00
-commit  : d0497ca (uncommitted changes)
+date    : 2026-10-26T14:36:59+08:00
+commit  : 44a83da (uncommitted changes)
 nvcc    : Cuda compilation tools, release 13.3, V13.3.73
 gpu     : NVIDIA GeForce RTX 5060 Laptop GPU, 592.15, [N/A]
 reps    : 30
 --- clock_probe BEFORE sweep ---
 GPU               : NVIDIA GeForce RTX 5060 Laptop GPU (26 SMs)
 Launch            : 156 blocks x 256 threads, 2000000 iters x 8 FMA chains
-Kernel time       : median 72.907 ms | min 72.904 | max 72.956 | stddev 0.017 (0.0 %)
-SM clock (measured): median 2737 MHz over blocks (min 2735, max 2737)
-FMA throughput    : 17528.5 GFLOP/s
-Theoretical peak  : 18215.4 GFLOP/s at the measured clock (128 lanes x 26 SMs x 2 x f)
+Kernel time       : median 72.919 ms | min 72.913 | max 72.964 | stddev 0.019 (0.0 %)
+SM clock (measured): median 2736 MHz over blocks (min 2734, max 2737)
+FMA throughput    : 17525.7 GFLOP/s
+Theoretical peak  : 18213.1 GFLOP/s at the measured clock (128 lanes x 26 SMs x 2 x f)
 Efficiency        : 96.2 % of theoretical peak
 --- clock_probe AFTER sweep ---
 GPU               : NVIDIA GeForce RTX 5060 Laptop GPU (26 SMs)
 Launch            : 156 blocks x 256 threads, 2000000 iters x 8 FMA chains
-Kernel time       : median 72.911 ms | min 72.904 | max 72.933 | stddev 0.009 (0.0 %)
-SM clock (measured): median 2737 MHz over blocks (min 2735, max 2737)
-FMA throughput    : 17527.5 GFLOP/s
-Theoretical peak  : 18214.8 GFLOP/s at the measured clock (128 lanes x 26 SMs x 2 x f)
+Kernel time       : median 72.919 ms | min 72.916 | max 72.949 | stddev 0.009 (0.0 %)
+SM clock (measured): median 2736 MHz over blocks (min 2734, max 2737)
+FMA throughput    : 17525.5 GFLOP/s
+Theoretical peak  : 18212.7 GFLOP/s at the measured clock (128 lanes x 26 SMs x 2 x f)
 Efficiency        : 96.2 % of theoretical peak
