@@ -19,7 +19,7 @@
 #define SEGMENT_SIZE (2 * BLOCK_DIM * COARSE_FACTOR)
 
 // Short label printed by bench_reduction (set it for each version you write)
-#define REDUCTION_NAME "reduction"
+#define REDUCTION_NAME "shared"
 
 // Kernel. Launched with BLOCK_DIM threads per block, one block per segment.
 //   input   : n floats, read-only (the benchmark reuses them between runs)

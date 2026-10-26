@@ -20,7 +20,7 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Editor
-.vscode/utils/clock_probe
+.vscode/
 utils/clock_probe
 results/ncu/
 results/ncu_reduction/

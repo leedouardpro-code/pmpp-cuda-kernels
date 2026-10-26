@@ -56,7 +56,6 @@ float reduction_gpu(const float* input_h, int n) {
 
     // Free Device allocated memory
     CUDA_CHECK(cudaFree(input_d));
-    CUDA_CHECK(cudaFree(scratch_d));
     CUDA_CHECK(cudaFree(output_d));
     return output_h;
 }
