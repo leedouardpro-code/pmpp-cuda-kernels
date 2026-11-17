@@ -1,0 +1,83 @@
+name: GPU Simulator
+
+# Optional, non-required check. The hosted runners have no GPU, so this builds
+# a subset of the chapter tests and runs them on a simulated NVIDIA H100
+# (https://github.com/pantheongpu/pantheonsim). A simulator cannot reproduce
+# hardware-specific behavior or timing, so it complements real-GPU testing and
+# does not replace it.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "ch2/**"
+      - "ch3/matmul/**"
+      - "ch5/**"
+      - "ch6/**"
+      - "ch10/**"
+      - "extra/**"
+      - "utils/**"
+      - "common.mk"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (CUDA 13.0 and simulated H100)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Set up the simulated GPU and CUDA toolkit
+        uses: pantheongpu/setup-pantheonsim@deff5781e8adfd83dec98dd5242dcbc96a564773 # v0.1.10
+        with:
+          gpu: nvidia/h100
+          cuda-toolkit: "13.0"
+
+      # compute_90 embeds PTX only, which the simulator runs. The simulator
+      # needs a shared CUDA runtime, passed through EXTRA.
+      # Left out: cublas (needs host cuBLAS), openacc, and ch3/color2gray (its
+      # test fails here by 1.5e-5 on values near 150 against an absolute
+      # tolerance of 1e-5; the cause was not investigated).
+      - name: Build and run the chapter tests
+        shell: bash
+        run: |
+          set -u
+          fail=0
+          for spec in ch2/vecadd:test_vecadd:4 ch3/matmul:test_matmul:9 \
+                      ch5/matmul_tiling:test_matmul:9 \
+                      ch6/matmul_coarsening:test_matmul:9 \
+                      extra/register_tiling1D:test_matmul:9 \
+                      extra/register_tiling2D:test_matmul:9 \
+                      ch10/simple_reduction:test_reduction:19 \
+                      ch10/shared_reduction:test_reduction:19 \
+                      ch10/coarsened_reduction:test_reduction:19 \
+                      ch10/cub_reduction:test_reduction:19; do
+            IFS=: read -r dir bin want <<< "$spec"
+            echo "::group::$dir"
+            if ! make -C "$dir" "$bin" -j3 ARCH=compute_90 EXTRA="-cudart shared"; then
+              echo "::error::build failed in $dir"; fail=1; echo "::endgroup::"; continue
+            fi
+            ( cd "$dir" && vgpu run ./"$bin" ) 2>&1 | tee "$dir/run.log"
+            rc=${PIPESTATUS[0]}
+            got=$(grep -c '^\[PASS\]' "$dir/run.log" || true)
+            echo "$dir: exit $rc, $got of $want PASS lines"
+            if [ "$rc" -ne 0 ] || [ "$got" -ne "$want" ] \
+               || grep -q '\[FAIL\]' "$dir/run.log" \
+               || grep -qi 'VirtualGPU error\|no CUDA-capable device\|no device' "$dir/run.log"; then
+              echo "::error::$dir failed"; fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $fail
